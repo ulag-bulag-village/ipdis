@@ -5,8 +5,11 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[target.'cfg(not(target_os = "wasi"))'.dependencies]
-ipdis-api-native = { path = "./native" }
+[dependencies]
+ipis = { git = "https://github.com/ulagbulag-village/ipis", features = [
+    "derive",
+] }
+ipiis-api = { git = "https://github.com/ulagbulag-village/ipiis" }
 
-[target.'cfg(target_os = "wasi")'.dependencies]
-ipdis-api-wasi = { path = "./wasi" }
+bytecheck = "0.6"
+rkyv = { version = "0.7", features = ["archive_be"] }
