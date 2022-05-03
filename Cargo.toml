@@ -1,0 +1,3 @@
+[workspace]
+members = ["api", "api/native", "api/wasi", "common", "pallet", "runtime"]
+default-members = ["runtime"]
