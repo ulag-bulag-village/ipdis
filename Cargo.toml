@@ -1,4 +1,4 @@
 [workspace]
 resolver = "2"
-members = ["api", "common", "pallet", "runtime"]
+members = ["api", "api/s3", "common", "pallet", "runtime"]
 default-members = ["runtime"]

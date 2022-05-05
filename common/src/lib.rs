@@ -13,10 +13,9 @@ use ipis::{
         anyhow::Result,
         metadata::Metadata,
         signature::SignatureSerializer,
-        value::{chrono::DateTime, hash::Hash},
+        value::chrono::DateTime,
     },
     path::Path,
-    pin::Pinned,
 };
 use rkyv::{
     de::deserializers::SharedDeserializeMap, validation::validators::DefaultValidator, Archive,
@@ -25,7 +24,7 @@ use rkyv::{
 
 #[async_trait]
 pub trait Ipdis {
-    async fn get<Res>(&self, path: &Path) -> Result<Pinned<GuaranteeSigned<Res>>>
+    async fn get<Res>(&self, path: &Path) -> Result<Res>
     where
         Res: Class
             + Archive
@@ -39,20 +38,20 @@ pub trait Ipdis {
             + PartialEq
             + Send;
 
-    async fn put<Req>(&self, msg: &Req, expiration_date: DateTime) -> Result<GuaranteeSigned<Hash>>
+    async fn put<Req>(&self, msg: &Req, expiration_date: DateTime) -> Result<Path>
     where
         Req: Serialize<Serializer> + Send + Sync;
 
-    async fn put_permanent<Req>(&self, msg: &Req) -> Result<GuaranteeSigned<Hash>>
+    async fn put_permanent<Req>(&self, msg: &Req) -> Result<Path>
     where
         Req: Serialize<Serializer> + Send + Sync;
 
-    async fn delete(&self, path: &Path) -> Result<GuaranteeSigned<()>>;
+    async fn delete(&self, path: &Path) -> Result<()>;
 }
 
 #[async_trait]
 impl Ipdis for IpiisClient {
-    async fn get<Res>(&self, path: &Path) -> Result<Pinned<GuaranteeSigned<Res>>>
+    async fn get<Res>(&self, path: &Path) -> Result<Res>
     where
         Res: Class
             + Archive
@@ -73,15 +72,17 @@ impl Ipdis for IpiisClient {
         let req = RequestType::Get { path: *path };
 
         // external call
-        let res = self.call_permanent(Opcode::TEXT, &target, req).await?;
+        let res: GuaranteeSigned<Res> = self
+            .call_permanent_deserialized(Opcode::TEXT, &target, req)
+            .await?;
 
         // verify response
         let () = res.verify(Some(self.account_me().account_ref()))?;
 
-        Ok(res)
+        Ok(res.data.data)
     }
 
-    async fn put<Req>(&self, msg: &Req, expiration_date: DateTime) -> Result<GuaranteeSigned<Hash>>
+    async fn put<Req>(&self, msg: &Req, expiration_date: DateTime) -> Result<Path>
     where
         Req: Serialize<Serializer> + Send + Sync,
     {
@@ -101,17 +102,17 @@ impl Ipdis for IpiisClient {
         )?;
 
         // external call
-        let res: GuaranteeSigned<Hash> = self
+        let res: GuaranteeSigned<Path> = self
             .call_permanent_deserialized(Opcode::TEXT, &target, req)
             .await?;
 
         // verify response
         let () = res.verify(Some(self.account_me().account_ref()))?;
 
-        Ok(res)
+        Ok(res.data.data)
     }
 
-    async fn put_permanent<Req>(&self, msg: &Req) -> Result<GuaranteeSigned<Hash>>
+    async fn put_permanent<Req>(&self, msg: &Req) -> Result<Path>
     where
         Req: Serialize<Serializer> + Send + Sync,
     {
@@ -124,17 +125,17 @@ impl Ipdis for IpiisClient {
         };
 
         // external call
-        let res: GuaranteeSigned<Hash> = self
+        let res: GuaranteeSigned<Path> = self
             .call_permanent_deserialized(Opcode::TEXT, &target, req)
             .await?;
 
         // verify response
         let () = res.verify(Some(self.account_me().account_ref()))?;
 
-        Ok(res)
+        Ok(res.data.data)
     }
 
-    async fn delete(&self, path: &Path) -> Result<GuaranteeSigned<()>> {
+    async fn delete(&self, path: &Path) -> Result<()> {
         // next target
         let target = self.account_primary()?;
 
@@ -149,7 +150,7 @@ impl Ipdis for IpiisClient {
         // verify response
         let () = res.verify(Some(self.account_me().account_ref()))?;
 
-        Ok(res)
+        Ok(())
     }
 }
 

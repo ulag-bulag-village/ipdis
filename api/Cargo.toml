@@ -5,8 +5,16 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["s3"]
+s3 = ["ipdis-api-s3"]
+
 [dependencies]
-ipis = { git = "https://github.com/ulagbulag-village/ipis", features = [
-    "derive",
-] }
-ipdis-common = { path = "../common" }
+ipdis-api-s3 = { path = "s3", optional = true }
+
+[dev-dependencies]
+ipis = { git = "https://github.com/ulagbulag-village/ipis" }
+
+bytecheck = "0.6"
+rkyv = { version = "0.7", features = ["archive_be"] }
+tokio = { version = "1.18", features = ["full"] }
