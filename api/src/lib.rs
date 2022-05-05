@@ -7,7 +7,10 @@ use ipis::{
     bytecheck::CheckBytes,
     class::Class,
     core::{
-        account::GuaranteeSigned, anyhow::Result, signature::SignatureSerializer, value::hash::Hash,
+        account::GuaranteeSigned,
+        anyhow::Result,
+        signature::SignatureSerializer,
+        value::{chrono::DateTime, hash::Hash},
     },
     path::Path,
     pin::Pinned,
@@ -29,7 +32,7 @@ impl AsRef<IpiisClient> for IpdisClient {
 
 #[async_trait]
 impl Ipdis for IpdisClient {
-    async fn get_permanent<Res>(&self, path: &Path) -> Result<Pinned<GuaranteeSigned<Res>>>
+    async fn get<Res>(&self, path: &Path) -> Result<Pinned<GuaranteeSigned<Res>>>
     where
         Res: Class
             + Archive
@@ -46,6 +49,13 @@ impl Ipdis for IpdisClient {
         todo!()
     }
 
+    async fn put<Req>(&self, msg: &Req, expiration_date: DateTime) -> Result<GuaranteeSigned<Hash>>
+    where
+        Req: Serialize<Serializer> + Send + Sync,
+    {
+        todo!()
+    }
+
     async fn put_permanent<Req>(&self, msg: &Req) -> Result<GuaranteeSigned<Hash>>
     where
         Req: Serialize<Serializer> + Send + Sync,
@@ -53,7 +63,7 @@ impl Ipdis for IpdisClient {
         todo!()
     }
 
-    async fn delete(&self, path: &Path) -> Result<GuaranteeSigned<Hash>> {
+    async fn delete(&self, path: &Path) -> Result<GuaranteeSigned<()>> {
         todo!()
     }
 }
