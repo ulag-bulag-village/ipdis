@@ -1,5 +1,5 @@
 [package]
-name = "ipdis-api"
+name = "ipdis-common"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,4 +9,7 @@ edition = "2021"
 ipis = { git = "https://github.com/ulagbulag-village/ipis", features = [
     "derive",
 ] }
-ipdis-common = { path = "../common" }
+ipiis-api = { git = "https://github.com/ulagbulag-village/ipiis" }
+
+bytecheck = "0.6"
+rkyv = { version = "0.7", features = ["archive_be"] }

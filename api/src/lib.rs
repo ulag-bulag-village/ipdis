@@ -1,68 +1,59 @@
-use bytecheck::CheckBytes;
-use ipiis_api::{
-    client::IpiisClient,
-    common::{opcode::Opcode, Ipiis, Serializer},
+use ipdis_common::{
+    ipiis_api::{client::IpiisClient, common::Serializer},
+    Ipdis,
 };
 use ipis::{
     async_trait::async_trait,
+    bytecheck::CheckBytes,
     class::Class,
-    core::{anyhow::Result, value::hash::Hash},
+    core::{
+        account::GuaranteeSigned, anyhow::Result, signature::SignatureSerializer, value::hash::Hash,
+    },
+    path::Path,
     pin::Pinned,
+    rkyv::{
+        de::deserializers::SharedDeserializeMap, validation::validators::DefaultValidator, Archive,
+        Deserialize, Serialize,
+    },
 };
-use rkyv::{validation::validators::DefaultValidator, Archive, Deserialize, Infallible, Serialize};
 
-#[async_trait]
-pub trait Ipdis {
-    async fn get<Res>(&self, hash: &Hash) -> Result<Pinned<Res>>
-    where
-        Res: Class + Archive + Send,
-        <Res as Archive>::Archived:
-            for<'a> CheckBytes<DefaultValidator<'a>> + Deserialize<Res, Infallible>;
+pub struct IpdisClient {
+    ipiis: IpiisClient,
+}
 
-    async fn put<Req>(&self, msg: &Req) -> Result<Hash>
-    where
-        Req: Serialize<Serializer> + Send + Sync;
+impl AsRef<IpiisClient> for IpdisClient {
+    fn as_ref(&self) -> &IpiisClient {
+        &self.ipiis
+    }
 }
 
 #[async_trait]
-impl Ipdis for IpiisClient {
-    async fn get<Res>(&self, hash: &Hash) -> Result<Pinned<Res>>
+impl Ipdis for IpdisClient {
+    async fn get_permanent<Res>(&self, path: &Path) -> Result<Pinned<GuaranteeSigned<Res>>>
     where
-        Res: Class + Archive + Send,
-        <Res as Archive>::Archived:
-            for<'a> CheckBytes<DefaultValidator<'a>> + Deserialize<Res, Infallible>,
+        Res: Class
+            + Archive
+            + Serialize<SignatureSerializer>
+            + ::core::fmt::Debug
+            + PartialEq
+            + Send,
+        <Res as Archive>::Archived: for<'a> CheckBytes<DefaultValidator<'a>>
+            + Deserialize<Res, SharedDeserializeMap>
+            + ::core::fmt::Debug
+            + PartialEq
+            + Send,
     {
-        // next target
-        let target = self.account_primary()?;
-
-        // pack request
-        let req = Request::Get { hash: *hash };
-
-        // external call
-        self.call(Opcode::TEXT, &target, &req).await
+        todo!()
     }
 
-    async fn put<Req>(&self, msg: &Req) -> Result<Hash>
+    async fn put_permanent<Req>(&self, msg: &Req) -> Result<GuaranteeSigned<Hash>>
     where
         Req: Serialize<Serializer> + Send + Sync,
     {
-        // next target
-        let target = self.account_primary()?;
-
-        // pack request
-        let req = Request::Put {
-            data: ::rkyv::to_bytes(msg)?.to_vec(),
-        };
-
-        // external call
-        self.call_deserialized(Opcode::TEXT, &target, &req).await
+        todo!()
     }
-}
 
-#[derive(Clone, Debug, PartialEq, Archive, Serialize, Deserialize)]
-#[archive(compare(PartialEq))]
-#[archive_attr(derive(Debug, PartialEq))]
-pub enum Request {
-    Get { hash: Hash },
-    Put { data: Vec<u8> },
+    async fn delete(&self, path: &Path) -> Result<GuaranteeSigned<Hash>> {
+        todo!()
+    }
 }
