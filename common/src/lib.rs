@@ -47,13 +47,16 @@ pub trait Ipdis {
 
     async fn get_raw(&self, path: &Path) -> Result<Vec<u8>>;
 
-    async fn put<Req>(&self, msg: &Req, expiration_date: DateTime) -> Result<Path>
+    async fn put<Req>(&self, data: &Req, expiration_date: Option<DateTime>) -> Result<Path>
     where
-        Req: Serialize<Serializer> + Send + Sync;
+        Req: Serialize<Serializer> + Send + Sync,
+    {
+        let data = ::rkyv::to_bytes(data)?.to_vec();
 
-    async fn put_permanent<Req>(&self, msg: &Req) -> Result<Path>
-    where
-        Req: Serialize<Serializer> + Send + Sync;
+        self.put_raw(data, expiration_date).await
+    }
+
+    async fn put_raw(&self, data: Vec<u8>, expiration_date: Option<DateTime>) -> Result<Path>;
 
     async fn delete(&self, path: &Path) -> Result<()>;
 }
@@ -81,56 +84,29 @@ impl Ipdis for IpiisClient {
         Ok(data)
     }
 
-    async fn put<Req>(&self, msg: &Req, expiration_date: DateTime) -> Result<Path>
-    where
-        Req: Serialize<Serializer> + Send + Sync,
-    {
+    async fn put_raw(&self, data: Vec<u8>, expiration_date: Option<DateTime>) -> Result<Path> {
         // next target
         let target = self.account_primary()?;
 
         // pack request
-        let req = RequestType::Put {
-            data: ::rkyv::to_bytes(msg)?.to_vec(),
-        };
+        let req = RequestType::Put { data };
 
         // sign request
-        let req = Metadata::builder().expiration_date(expiration_date).build(
-            self.account_me(),
-            target,
-            req,
-        )?;
+        let req = {
+            let mut builder = Metadata::builder();
+
+            if let Some(expiration_date) = expiration_date {
+                builder = builder.expiration_date(expiration_date);
+            }
+
+            builder.build(self.account_me(), target, req)?
+        };
 
         // external call
         let (path,) = external_call!(
             account: self.account_me().account_ref(),
             call: self
                 .call_deserialized(Opcode::TEXT, &target, req)
-                .await?,
-            response: Response => Put,
-            items: { path },
-        );
-
-        // unpack response
-        Ok(path)
-    }
-
-    async fn put_permanent<Req>(&self, msg: &Req) -> Result<Path>
-    where
-        Req: Serialize<Serializer> + Send + Sync,
-    {
-        // next target
-        let target = self.account_primary()?;
-
-        // pack request
-        let req = RequestType::Put {
-            data: ::rkyv::to_bytes(msg)?.to_vec(),
-        };
-
-        // external call
-        let (path,) = external_call!(
-            account: self.account_me().account_ref(),
-            call: self
-                .call_permanent_deserialized(Opcode::TEXT, &target, req)
                 .await?,
             response: Response => Put,
             items: { path },

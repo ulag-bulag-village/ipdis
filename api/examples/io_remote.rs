@@ -1,6 +1,9 @@
 use bytecheck::CheckBytes;
 use ipdis_api::{
-    common::{ipiis_api::client::IpiisClient, Ipdis},
+    common::{
+        ipiis_api::{client::IpiisClient, common::Ipiis},
+        Ipdis,
+    },
     server::IpdisServer,
 };
 use ipis::{
@@ -21,11 +24,13 @@ pub struct MyData {
 #[tokio::main]
 async fn main() -> Result<()> {
     // deploy a server
-    let server = IpdisServer::infer()?;
+    let (server, certs) = IpdisServer::genesis(5001)?;
+    let server_account = server.account_me().account_ref();
     tokio::spawn(async move { server.run().await });
 
     // create a client
-    let client = IpiisClient::infer()?;
+    let client = IpiisClient::genesis((Some(server_account), &certs))?;
+    client.add_address(server_account, "127.0.0.1:5001".parse()?)?;
 
     // let's make a data we want to store
     let mut data = MyData {
@@ -34,17 +39,17 @@ async fn main() -> Result<()> {
     };
 
     // CREATE
-    let path_create = client.put_permanent(&data).await?;
+    let path_create = client.put(&data, None).await?;
 
     // UPDATE (identity)
-    let path_update_identity = client.put_permanent(&data).await?;
+    let path_update_identity = client.put(&data, None).await?;
     assert_eq!(&path_create, &path_update_identity); // SAME Path
 
     // let's modify the data so that it has a different path
     data.name = "Bob".to_string();
 
     // UPDATE (changed)
-    let path_update_changed = client.put_permanent(&data).await?;
+    let path_update_changed = client.put(&data, None).await?;
     assert_ne!(&path_create, &path_update_changed); // CHANGED Path
 
     // READ

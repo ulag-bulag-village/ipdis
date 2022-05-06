@@ -27,17 +27,17 @@ async fn main() -> Result<()> {
     };
 
     // CREATE
-    let path_create = client.put_permanent(&data).await?;
+    let path_create = client.put(&data, None).await?;
 
     // UPDATE (identity)
-    let path_update_identity = client.put_permanent(&data).await?;
+    let path_update_identity = client.put(&data, None).await?;
     assert_eq!(&path_create, &path_update_identity); // SAME Path
 
     // let's modify the data so that it has a different path
     data.name = "Bob".to_string();
 
     // UPDATE (changed)
-    let path_update_changed = client.put_permanent(&data).await?;
+    let path_update_changed = client.put(&data, None).await?;
     assert_ne!(&path_create, &path_update_changed); // CHANGED Path
 
     // READ

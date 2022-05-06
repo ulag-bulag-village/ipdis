@@ -1,7 +1,4 @@
-use ipdis_common::{
-    ipiis_api::common::{Ipiis, Serializer},
-    Ipdis,
-};
+use ipdis_common::{ipiis_api::common::Ipiis, Ipdis};
 use ipis::{
     async_trait::async_trait,
     core::{
@@ -12,7 +9,6 @@ use ipis::{
     env::{infer, Infer},
     log::warn,
     path::Path,
-    rkyv::Serialize,
 };
 use s3::Bucket;
 
@@ -31,13 +27,29 @@ impl<IpiisClient> ::core::ops::Deref for IpdisClientInner<IpiisClient> {
     }
 }
 
-impl<IpiisClient> Infer for IpdisClientInner<IpiisClient>
+impl<'a, IpiisClient> Infer<'a> for IpdisClientInner<IpiisClient>
 where
-    IpiisClient: Infer,
+    IpiisClient: Infer<'a, GenesisResult = IpiisClient>,
+    <IpiisClient as Infer<'a>>::GenesisArgs: Sized,
 {
+    type GenesisArgs = <IpiisClient as Infer<'a>>::GenesisArgs;
+    type GenesisResult = Self;
+
     fn infer() -> Result<Self> {
+        IpiisClient::infer().and_then(Self::with_ipiis_client)
+    }
+
+    fn genesis(
+        certs: <Self as Infer<'a>>::GenesisArgs,
+    ) -> Result<<Self as Infer<'a>>::GenesisResult> {
+        IpiisClient::genesis(certs).and_then(Self::with_ipiis_client)
+    }
+}
+
+impl<IpiisClient> IpdisClientInner<IpiisClient> {
+    pub fn with_ipiis_client(ipiis: IpiisClient) -> Result<Self> {
         Ok(Self {
-            ipiis: IpiisClient::infer()?,
+            ipiis,
             storage: {
                 let bucket_name: String = infer("ipdis_client_s3_bucket_name")?;
                 let region_name = infer("ipdis_client_s3_region_name")?;
@@ -83,21 +95,10 @@ where
         Ok(data)
     }
 
-    async fn put<Req>(&self, msg: &Req, _expiration_date: DateTime) -> Result<Path>
-    where
-        Req: Serialize<Serializer> + Send + Sync,
-    {
-        warn!("Expiration date for s3 is not supported yet!");
-
-        self.put_permanent(msg).await
-    }
-
-    async fn put_permanent<Req>(&self, msg: &Req) -> Result<Path>
-    where
-        Req: Serialize<Serializer> + Send + Sync,
-    {
-        // serialize data
-        let data = ::ipis::rkyv::to_bytes(msg)?;
+    async fn put_raw(&self, data: Vec<u8>, expiration_date: Option<DateTime>) -> Result<Path> {
+        if expiration_date.is_some() {
+            warn!("Expiration date for s3 is not supported yet!");
+        }
 
         // get canonical path
         let path = Path {
