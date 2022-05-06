@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
     // let's make a data we want to store
     let mut data = MyData {
         name: "Alice".to_string(),
-        age: 42,
+        age: 24,
     };
 
     // CREATE

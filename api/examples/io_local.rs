@@ -18,7 +18,7 @@ pub struct MyData {
 #[tokio::main]
 async fn main() -> Result<()> {
     // create a client
-    let client = IpdisClient::infer()?;
+    let client = IpdisClient::infer();
 
     // let's make a data we want to store
     let mut data = MyData {

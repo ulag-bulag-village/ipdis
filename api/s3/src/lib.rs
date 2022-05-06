@@ -35,8 +35,8 @@ where
     type GenesisArgs = <IpiisClient as Infer<'a>>::GenesisArgs;
     type GenesisResult = Self;
 
-    fn infer() -> Result<Self> {
-        IpiisClient::infer().and_then(Self::with_ipiis_client)
+    fn try_infer() -> Result<Self> {
+        IpiisClient::try_infer().and_then(Self::with_ipiis_client)
     }
 
     fn genesis(

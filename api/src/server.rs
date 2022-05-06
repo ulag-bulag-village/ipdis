@@ -1,5 +1,3 @@
-use core::convert::Infallible;
-
 use ipdis_common::{
     ipiis_api::{rustls::Certificate, server::IpiisServer},
     Ipdis, Request, RequestType, Response,
@@ -24,9 +22,9 @@ impl<'a> Infer<'a> for IpdisServer {
     type GenesisArgs = <IpiisServer as Infer<'a>>::GenesisArgs;
     type GenesisResult = (Self, Vec<Certificate>);
 
-    fn infer() -> Result<Self> {
+    fn try_infer() -> Result<Self> {
         Ok(Self {
-            client: IpiisServer::infer().and_then(IpdisClientInner::with_ipiis_client)?,
+            client: IpiisServer::try_infer().and_then(IpdisClientInner::with_ipiis_client)?,
         })
     }
 
@@ -44,7 +42,7 @@ impl<'a> Infer<'a> for IpdisServer {
 }
 
 impl IpdisServer {
-    pub async fn run(&self) -> Result<Infallible> {
+    pub async fn run(&self) {
         self.client.run(|req| self.handler(req)).await
     }
 
