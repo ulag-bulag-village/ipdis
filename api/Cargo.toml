@@ -10,7 +10,11 @@ default = ["s3"]
 s3 = ["ipdis-api-s3"]
 
 [dependencies]
+ipis = { git = "https://github.com/ulagbulag-village/ipis", features = [
+    "derive",
+] }
 ipdis-api-s3 = { path = "s3", optional = true }
+ipdis-common = { path = "../common" }
 
 [dev-dependencies]
 ipis = { git = "https://github.com/ulagbulag-village/ipis" }
