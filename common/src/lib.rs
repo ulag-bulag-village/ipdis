@@ -1,21 +1,21 @@
+#![feature(more_qualified_paths)]
+
 pub extern crate ipiis_api;
 
 use bytecheck::CheckBytes;
 use ipiis_api::{
     client::IpiisClient,
-    common::{opcode::Opcode, Ipiis, Serializer},
+    common::{external_call, opcode::Opcode, Ipiis, Serializer},
 };
 use ipis::{
     async_trait::async_trait,
     class::Class,
     core::{
-        account::{GuaranteeSigned, Verifier},
-        anyhow::Result,
-        metadata::Metadata,
-        signature::SignatureSerializer,
-        value::chrono::DateTime,
+        account::GuaranteeSigned, anyhow::Result, metadata::Metadata,
+        signature::SignatureSerializer, value::chrono::DateTime,
     },
     path::Path,
+    pin::PinnedInner,
 };
 use rkyv::{
     de::deserializers::SharedDeserializeMap, validation::validators::DefaultValidator, Archive,
@@ -36,7 +36,16 @@ pub trait Ipdis {
             + Deserialize<Res, SharedDeserializeMap>
             + ::core::fmt::Debug
             + PartialEq
-            + Send;
+            + Send,
+    {
+        {
+            self.get_raw(path)
+                .await
+                .and_then(PinnedInner::deserialize_owned)
+        }
+    }
+
+    async fn get_raw(&self, path: &Path) -> Result<Vec<u8>>;
 
     async fn put<Req>(&self, msg: &Req, expiration_date: DateTime) -> Result<Path>
     where
@@ -51,20 +60,7 @@ pub trait Ipdis {
 
 #[async_trait]
 impl Ipdis for IpiisClient {
-    async fn get<Res>(&self, path: &Path) -> Result<Res>
-    where
-        Res: Class
-            + Archive
-            + Serialize<SignatureSerializer>
-            + ::core::fmt::Debug
-            + PartialEq
-            + Send,
-        <Res as Archive>::Archived: for<'a> CheckBytes<DefaultValidator<'a>>
-            + Deserialize<Res, SharedDeserializeMap>
-            + ::core::fmt::Debug
-            + PartialEq
-            + Send,
-    {
+    async fn get_raw(&self, path: &Path) -> Result<Vec<u8>> {
         // next target
         let target = self.account_primary()?;
 
@@ -72,14 +68,17 @@ impl Ipdis for IpiisClient {
         let req = RequestType::Get { path: *path };
 
         // external call
-        let res: GuaranteeSigned<Res> = self
-            .call_permanent_deserialized(Opcode::TEXT, &target, req)
-            .await?;
+        let (data,) = external_call!(
+            account: self.account_me().account_ref(),
+            call: self
+                .call_permanent_deserialized(Opcode::TEXT, &target, req)
+                .await?,
+            response: Response => Get,
+            items: { data },
+        );
 
-        // verify response
-        let () = res.verify(Some(self.account_me().account_ref()))?;
-
-        Ok(res.data.data)
+        // unpack response
+        Ok(data)
     }
 
     async fn put<Req>(&self, msg: &Req, expiration_date: DateTime) -> Result<Path>
@@ -102,14 +101,17 @@ impl Ipdis for IpiisClient {
         )?;
 
         // external call
-        let res: GuaranteeSigned<Path> = self
-            .call_permanent_deserialized(Opcode::TEXT, &target, req)
-            .await?;
+        let (path,) = external_call!(
+            account: self.account_me().account_ref(),
+            call: self
+                .call_deserialized(Opcode::TEXT, &target, req)
+                .await?,
+            response: Response => Put,
+            items: { path },
+        );
 
-        // verify response
-        let () = res.verify(Some(self.account_me().account_ref()))?;
-
-        Ok(res.data.data)
+        // unpack response
+        Ok(path)
     }
 
     async fn put_permanent<Req>(&self, msg: &Req) -> Result<Path>
@@ -125,14 +127,17 @@ impl Ipdis for IpiisClient {
         };
 
         // external call
-        let res: GuaranteeSigned<Path> = self
-            .call_permanent_deserialized(Opcode::TEXT, &target, req)
-            .await?;
+        let (path,) = external_call!(
+            account: self.account_me().account_ref(),
+            call: self
+                .call_permanent_deserialized(Opcode::TEXT, &target, req)
+                .await?,
+            response: Response => Put,
+            items: { path },
+        );
 
-        // verify response
-        let () = res.verify(Some(self.account_me().account_ref()))?;
-
-        Ok(res.data.data)
+        // unpack response
+        Ok(path)
     }
 
     async fn delete(&self, path: &Path) -> Result<()> {
@@ -143,13 +148,15 @@ impl Ipdis for IpiisClient {
         let req = RequestType::Delete { path: *path };
 
         // external call
-        let res: GuaranteeSigned<()> = self
-            .call_permanent_deserialized(Opcode::TEXT, &target, req)
-            .await?;
+        let () = external_call!(
+            account: self.account_me().account_ref(),
+            call: self
+                .call_permanent_deserialized(Opcode::TEXT, &target, req)
+                .await?,
+            response: Response => Delete,
+        );
 
-        // verify response
-        let () = res.verify(Some(self.account_me().account_ref()))?;
-
+        // unpack response
         Ok(())
     }
 }
@@ -158,9 +165,18 @@ pub type Request = GuaranteeSigned<RequestType>;
 
 #[derive(Clone, Debug, PartialEq, Archive, Serialize, Deserialize)]
 #[archive(compare(PartialEq))]
-#[archive_attr(derive(Debug, PartialEq))]
+#[archive_attr(derive(CheckBytes, Debug, PartialEq))]
 pub enum RequestType {
     Get { path: Path },
     Put { data: Vec<u8> },
     Delete { path: Path },
+}
+
+#[derive(Clone, Debug, PartialEq, Archive, Serialize, Deserialize)]
+#[archive(compare(PartialEq))]
+#[archive_attr(derive(CheckBytes, Debug, PartialEq))]
+pub enum Response {
+    Get { data: Vec<u8> },
+    Put { path: Path },
+    Delete,
 }

@@ -1,8 +1,9 @@
 use bytecheck::CheckBytes;
-use ipdis_api::{common::Ipdis, IpdisClient};
+use ipdis_api::{client::IpdisClient, common::Ipdis};
 use ipis::{
     class::Class,
     core::anyhow::{bail, Result},
+    env::Infer,
 };
 use rkyv::{Archive, Deserialize, Serialize};
 
