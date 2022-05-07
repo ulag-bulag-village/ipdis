@@ -24,9 +24,7 @@ impl<'a> Infer<'a> for IpdisServer {
 
     fn try_infer() -> Result<Self> {
         Ok(Self {
-            client: IpiisServer::try_infer()
-                .and_then(IpdisClientInner::with_ipiis_client)?
-                .into(),
+            client: IpdisClientInner::try_infer()?.into(),
         })
     }
 
