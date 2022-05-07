@@ -7,13 +7,13 @@ edition = "2021"
 
 [features]
 default = ["s3"]
-s3 = ["ipdis-api-s3"]
+s3 = ["ipdis-api-persistent-s3"]
 
 [dependencies]
 ipis = { git = "https://github.com/ulagbulag-village/ipis", features = [
     "derive",
 ] }
-ipdis-api-s3 = { path = "s3", optional = true }
+ipdis-api-persistent-s3 = { path = "./persistent/s3", optional = true }
 ipdis-common = { path = "../common" }
 
 [dev-dependencies]
