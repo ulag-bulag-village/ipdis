@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use ipdis_common::{
-    ipiis_api::{rustls::Certificate, server::IpiisServer},
+    ipiis_api::{client::IpiisClient, server::IpiisServer},
     Ipdis, Request, RequestType, Response,
 };
 use ipis::{core::anyhow::Result, env::Infer, pin::Pinned};
@@ -7,59 +9,58 @@ use ipis::{core::anyhow::Result, env::Infer, pin::Pinned};
 use crate::client::IpdisClientInner;
 
 pub struct IpdisServer {
-    client: IpdisClientInner<IpiisServer>,
+    client: Arc<IpdisClientInner<IpiisServer>>,
 }
 
-impl ::core::ops::Deref for IpdisServer {
-    type Target = IpdisClientInner<IpiisServer>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.client
+impl AsRef<IpiisClient> for IpdisServer {
+    fn as_ref(&self) -> &IpiisClient {
+        self.client.as_ref().as_ref()
     }
 }
 
 impl<'a> Infer<'a> for IpdisServer {
     type GenesisArgs = <IpiisServer as Infer<'a>>::GenesisArgs;
-    type GenesisResult = (Self, Vec<Certificate>);
+    type GenesisResult = Self;
 
     fn try_infer() -> Result<Self> {
         Ok(Self {
-            client: IpiisServer::try_infer().and_then(IpdisClientInner::with_ipiis_client)?,
+            client: IpiisServer::try_infer()
+                .and_then(IpdisClientInner::with_ipiis_client)?
+                .into(),
         })
     }
 
     fn genesis(
-        port: <Self as Infer<'a>>::GenesisArgs,
+        args: <Self as Infer<'a>>::GenesisArgs,
     ) -> Result<<Self as Infer<'a>>::GenesisResult> {
-        let (server, certs) = IpiisServer::genesis(port)?;
-
-        let server = Self {
-            client: IpdisClientInner::with_ipiis_client(server)?,
-        };
-
-        Ok((server, certs))
+        Ok(Self {
+            client: IpdisClientInner::genesis(args)?.into(),
+        })
     }
 }
 
 impl IpdisServer {
     pub async fn run(&self) {
-        self.client.run(|req| self.handler(req)).await
+        let client = self.client.clone();
+
+        self.client.ipiis.run(client, Self::handle).await
     }
 
-    async fn handler(&self, req: Pinned<Request>) -> Result<Response> {
+    async fn handle(
+        client: Arc<IpdisClientInner<IpiisServer>>,
+        req: Pinned<Request>,
+    ) -> Result<Response> {
         // TODO: CURD without deserializing
         let req = req.deserialize_into()?;
 
         match req.data.data {
             RequestType::Get { path } => Ok(Response::Get {
-                data: self.client.get_raw(&path).await?,
+                data: client.get_raw(&path).await?,
             }),
             RequestType::Put { data } => Ok(Response::Put {
-                path: self.client.put_raw(data, req.data.expiration_date).await?,
+                path: client.put_raw(data, req.data.expiration_date).await?,
             }),
-            RequestType::Delete { path } => {
-                self.client.delete(&path).await.map(|()| Response::Delete)
-            }
+            RequestType::Delete { path } => client.delete(&path).await.map(|()| Response::Delete),
         }
     }
 }

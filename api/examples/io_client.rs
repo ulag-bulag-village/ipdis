@@ -1,11 +1,5 @@
 use bytecheck::CheckBytes;
-use ipdis_api::{
-    common::{
-        ipiis_api::{client::IpiisClient, common::Ipiis},
-        Ipdis,
-    },
-    server::IpdisServer,
-};
+use ipdis_api::common::{ipiis_api::client::IpiisClient, Ipdis};
 use ipis::{
     class::Class,
     core::anyhow::{bail, Result},
@@ -23,14 +17,19 @@ pub struct MyData {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // deploy a server
-    let server = IpdisServer::genesis(5001)?;
-    let server_account = server.as_ref().account_me().account_ref();
-    tokio::spawn(async move { server.run().await });
+    // set environment variables
+    ::std::env::set_var(
+        "ipis_account_me",
+        // NOTE: please hide it if you want to use it for production
+        "32GLwJuG6igvTGtbXzjAG7iPMB4zoVY7jTZndR6kSdwSZiciLGozKKkTEhawcJKjzNcpLLLarmscB72m2M4u4sSw",
+    );
 
     // create a client
-    let client = IpiisClient::genesis(Some(server_account))?;
-    client.add_address(server_account, "127.0.0.1:5001".parse()?)?;
+    let client = IpiisClient::infer();
+    client.add_address(
+        "6p6fFPycxEFDwFNFF1gPPCoYRYGUtzrqFFavPis6dF61".parse()?,
+        "127.0.0.1:5001".parse()?,
+    )?;
 
     // let's make a data we want to store
     let mut data = MyData {

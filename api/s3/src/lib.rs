@@ -15,15 +15,17 @@ use s3::Bucket;
 pub type IpdisClient = IpdisClientInner<::ipdis_common::ipiis_api::client::IpiisClient>;
 
 pub struct IpdisClientInner<IpiisClient> {
-    ipiis: IpiisClient,
+    pub ipiis: IpiisClient,
     storage: Bucket,
 }
 
-impl<IpiisClient> ::core::ops::Deref for IpdisClientInner<IpiisClient> {
-    type Target = IpiisClient;
-
-    fn deref(&self) -> &Self::Target {
-        &self.ipiis
+impl<IpiisClient> AsRef<::ipdis_common::ipiis_api::client::IpiisClient>
+    for IpdisClientInner<IpiisClient>
+where
+    IpiisClient: AsRef<::ipdis_common::ipiis_api::client::IpiisClient>,
+{
+    fn as_ref(&self) -> &::ipdis_common::ipiis_api::client::IpiisClient {
+        self.ipiis.as_ref()
     }
 }
 
@@ -40,9 +42,9 @@ where
     }
 
     fn genesis(
-        certs: <Self as Infer<'a>>::GenesisArgs,
+        args: <Self as Infer<'a>>::GenesisArgs,
     ) -> Result<<Self as Infer<'a>>::GenesisResult> {
-        IpiisClient::genesis(certs).and_then(Self::with_ipiis_client)
+        IpiisClient::genesis(args).and_then(Self::with_ipiis_client)
     }
 }
 
