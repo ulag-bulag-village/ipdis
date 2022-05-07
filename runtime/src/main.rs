@@ -1,5 +1,5 @@
 use ipdis_api::server::IpdisServer;
-use ipis::env::Infer;
+use ipis::{env::Infer, tokio};
 
 #[tokio::main]
 async fn main() {
