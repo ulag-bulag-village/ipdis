@@ -144,6 +144,6 @@ fn validate_http_status_code(status_code: u16) -> Result<()> {
     if status_code.is_success() {
         Ok(())
     } else {
-        bail!("HTTP response was not successful: \"{}\"", status_code)
+        bail!("HTTP response was not successful: \"{status_code}\"")
     }
 }
