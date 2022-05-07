@@ -18,6 +18,12 @@ impl AsRef<IpiisClient> for IpdisServer {
     }
 }
 
+impl AsRef<IpiisServer> for IpdisServer {
+    fn as_ref(&self) -> &IpiisServer {
+        self.client.as_ref().as_ref()
+    }
+}
+
 impl<'a> Infer<'a> for IpdisServer {
     type GenesisArgs = <IpiisServer as Infer<'a>>::GenesisArgs;
     type GenesisResult = Self;

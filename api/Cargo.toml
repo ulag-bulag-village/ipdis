@@ -17,4 +17,3 @@ ipdis-common = { path = "../common" }
 [dev-dependencies]
 bytecheck = "0.6"
 rkyv = { version = "0.7", features = ["archive_be"] }
-tokio = { version = "1.18", features = ["full"] }

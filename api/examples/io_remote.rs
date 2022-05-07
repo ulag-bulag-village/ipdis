@@ -1,7 +1,7 @@
 use bytecheck::CheckBytes;
 use ipdis_api::{
     common::{
-        ipiis_api::{client::IpiisClient, common::Ipiis},
+        ipiis_api::{client::IpiisClient, common::Ipiis, server::IpiisServer},
         Ipdis,
     },
     server::IpdisServer,
@@ -10,6 +10,7 @@ use ipis::{
     class::Class,
     core::anyhow::{bail, Result},
     env::Infer,
+    tokio,
 };
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -25,7 +26,10 @@ pub struct MyData {
 async fn main() -> Result<()> {
     // deploy a server
     let server = IpdisServer::genesis(5001)?;
-    let server_account = server.as_ref().account_me().account_ref();
+    let server_account = {
+        let server: &IpiisServer = server.as_ref();
+        server.account_me().account_ref()
+    };
     tokio::spawn(async move { server.run().await });
 
     // create a client

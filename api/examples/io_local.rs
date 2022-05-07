@@ -4,6 +4,7 @@ use ipis::{
     class::Class,
     core::anyhow::{bail, Result},
     env::Infer,
+    tokio,
 };
 use rkyv::{Archive, Deserialize, Serialize};
 
