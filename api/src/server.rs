@@ -47,7 +47,8 @@ impl IpdisServer {
     pub async fn run(&self) {
         let client = self.client.clone();
 
-        self.client.ipiis.run(client, Self::handle).await
+        let runtime: &IpiisServer = self.client.as_ref().as_ref();
+        runtime.run(client, Self::handle).await
     }
 
     async fn handle(
