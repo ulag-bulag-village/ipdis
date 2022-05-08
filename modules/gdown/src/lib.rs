@@ -8,7 +8,6 @@ use reqwest::Client;
 
 #[async_trait]
 pub trait IpdisGdown: Ipdis {
-    /// NOTE: referred from: https://stackoverflow.com/a/39225039
     async fn download_from_gdrive(&self, id: &str) -> Result<Path> {
         const URL: &str = "https://docs.google.com/uc?export=download";
 
@@ -19,16 +18,24 @@ pub trait IpdisGdown: Ipdis {
         let mut response = session.get(URL).query(&[("id", id)]).send().await?;
 
         // size > 100MiB?
-        if response.cookies().next().is_some() {
-            let token = response
-                .cookies()
-                .find(|cookie| cookie.name() == "download_warning")
+        if response
+            .headers()
+            .get("content-type")
+            .and_then(|e| e.to_str().ok())
+            .map(|e| e.contains("text/html"))
+            .unwrap_or_default()
+        {
+            let token = response.text().await?;
+            let token = token
+                .split("confirm=")
+                .nth(1)
+                .and_then(|e| e.split('\"').next())
                 .ok_or_else(|| anyhow!("failed to get gdrive token: {id}"))?;
 
             // acquire data
             response = session
                 .get(URL)
-                .query(&[("id", id), ("confirm", token.value())])
+                .query(&[("id", id), ("confirm", token)])
                 .send()
                 .await?;
         }

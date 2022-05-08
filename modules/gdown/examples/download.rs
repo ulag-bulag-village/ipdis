@@ -12,10 +12,10 @@ async fn main() -> Result<()> {
     let path = client.download_from_gdrive(id).await?;
 
     // verify
+    assert_eq!(
+        &path.value.to_string(),
+        "FjL3dTmyrudvLxFcezJ7b3oGq7Q48ZUS8HH5e4wajVL7",
+    );
     assert_eq!(path.len, 496_300_196);
-
-    // notify
-    println!("Hash = {}", path.value.to_string());
-    println!("Length = {}", path.len);
     Ok(())
 }
