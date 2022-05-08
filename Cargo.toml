@@ -1,4 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["api", "api/persistent/s3", "common", "pallet", "runtime"]
+members = [
+    "api",
+    "api/persistent/s3",
+    "common",
+    "modules/gdown",
+    "pallet",
+    "runtime",
+]
 default-members = ["runtime"]
