@@ -24,13 +24,14 @@ async fn main() -> Result<()> {
         // NOTE: please hide it if you want to use it for production
         "32GLwJuG6igvTGtbXzjAG7iPMB4zoVY7jTZndR6kSdwSZiciLGozKKkTEhawcJKjzNcpLLLarmscB72m2M4u4sSw",
     );
+    ::std::env::set_var(
+        "ipiis_client_account_primary_address",
+        // NOTE: please hide it if you want to use it for production
+        "127.0.0.1:5001",
+    );
 
     // create a client
     let client = IpiisClient::infer();
-    client.add_address(
-        "6p6fFPycxEFDwFNFF1gPPCoYRYGUtzrqFFavPis6dF61".parse()?,
-        "127.0.0.1:5001".parse()?,
-    )?;
 
     // let's make a data we want to store
     let mut data = MyData {
