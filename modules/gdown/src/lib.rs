@@ -8,7 +8,7 @@ use reqwest::Client;
 
 #[async_trait]
 pub trait IpdisGdown: Ipdis {
-    async fn download_from_gdrive(&self, id: &str) -> Result<Path> {
+    async fn gdown(&self, id: &str) -> Result<Path> {
         const URL: &str = "https://docs.google.com/uc?export=download";
 
         // create a session

@@ -1,5 +1,5 @@
 use ipdis_api::client::IpdisClient;
-use ipdis_modules_gdrive::IpdisGdown;
+use ipdis_modules_gdown::IpdisGdown;
 use ipis::{core::anyhow::Result, env::Infer, tokio};
 
 #[tokio::main]
@@ -9,7 +9,7 @@ async fn main() -> Result<()> {
 
     // download from gdrive
     let id = "1gICu4NshBMQyUNgWsc2kydLBPpasIMNF";
-    let path = client.download_from_gdrive(id).await?;
+    let path = client.gdown(id).await?;
 
     // verify
     assert_eq!(
