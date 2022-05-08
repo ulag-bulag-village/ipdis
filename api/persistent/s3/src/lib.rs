@@ -129,6 +129,22 @@ where
         Ok(path)
     }
 
+    async fn contains(&self, path: &Path) -> Result<bool> {
+        // get canonical path
+        let path = to_path_canonical(self.ipiis.account_me().account_ref(), path);
+
+        // external call
+        let (_, status_code) = self.storage.head_object(path).await?;
+
+        // validate response
+        if status_code != 404 {
+            let () = validate_http_status_code(status_code)?;
+        }
+
+        // pack data
+        Ok(status_code == 200)
+    }
+
     async fn delete(&self, path: &Path) -> Result<()> {
         // get canonical path
         let path = to_path_canonical(self.ipiis.account_me().account_ref(), path);

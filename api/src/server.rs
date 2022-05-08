@@ -65,6 +65,9 @@ impl IpdisServer {
             RequestType::Put { data } => Ok(Response::Put {
                 path: client.put_raw(data, req.data.expiration_date).await?,
             }),
+            RequestType::Contains { path } => Ok(Response::Contains {
+                contains: client.contains(&path).await?,
+            }),
             RequestType::Delete { path } => client.delete(&path).await.map(|()| Response::Delete),
         }
     }

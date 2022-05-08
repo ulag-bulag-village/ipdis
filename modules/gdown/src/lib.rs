@@ -1,7 +1,7 @@
 use ipdis_common::Ipdis;
 use ipis::{
     async_trait::async_trait,
-    core::anyhow::{anyhow, Result},
+    core::anyhow::{anyhow, bail, Result},
     path::Path,
 };
 use reqwest::Client;
@@ -42,6 +42,22 @@ pub trait IpdisGdown: Ipdis {
 
         let data = response.bytes().await?.to_vec();
         self.put_raw(data, None).await
+    }
+
+    async fn gdown_static(&self, id: &str, path: &Path) -> Result<()> {
+        if self.contains(path).await? {
+            Ok(())
+        } else {
+            let downloaded = self.gdown(id).await?;
+
+            if &downloaded == path {
+                Ok(())
+            } else {
+                let expected = path.value.to_string();
+                let downloaded = downloaded.value.to_string();
+                bail!("gdown path mismatched: expected {expected}, but given {downloaded}")
+            }
+        }
     }
 }
 

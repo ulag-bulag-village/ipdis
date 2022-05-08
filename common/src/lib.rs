@@ -58,6 +58,8 @@ pub trait Ipdis {
 
     async fn put_raw(&self, data: Vec<u8>, expiration_date: Option<DateTime>) -> Result<Path>;
 
+    async fn contains(&self, path: &Path) -> Result<bool>;
+
     async fn delete(&self, path: &Path) -> Result<()>;
 }
 
@@ -116,6 +118,27 @@ impl Ipdis for IpiisClient {
         Ok(path)
     }
 
+    async fn contains(&self, path: &Path) -> Result<bool> {
+        // next target
+        let target = self.account_primary()?;
+
+        // pack request
+        let req = RequestType::Contains { path: *path };
+
+        // external call
+        let (contains,) = external_call!(
+            account: self.account_me().account_ref(),
+            call: self
+                .call_permanent_deserialized(Opcode::TEXT, &target, req)
+                .await?,
+            response: Response => Contains,
+            items: { contains },
+        );
+
+        // unpack response
+        Ok(contains)
+    }
+
     async fn delete(&self, path: &Path) -> Result<()> {
         // next target
         let target = self.account_primary()?;
@@ -145,6 +168,7 @@ pub type Request = GuaranteeSigned<RequestType>;
 pub enum RequestType {
     Get { path: Path },
     Put { data: Vec<u8> },
+    Contains { path: Path },
     Delete { path: Path },
 }
 
@@ -154,5 +178,6 @@ pub enum RequestType {
 pub enum Response {
     Get { data: Vec<u8> },
     Put { path: Path },
+    Contains { contains: bool },
     Delete,
 }
