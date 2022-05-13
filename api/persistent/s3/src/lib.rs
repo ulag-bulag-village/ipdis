@@ -1,4 +1,3 @@
-use ipdis_common::{ipiis_api::common::Ipiis, Ipdis};
 use ipis::{
     async_trait::async_trait,
     core::{
@@ -10,36 +9,37 @@ use ipis::{
     log::warn,
     path::Path,
 };
+use ipsis_common::{ipiis_api::common::Ipiis, Ipsis};
 use s3::Bucket;
 
-pub type IpdisClient = IpdisClientInner<::ipdis_common::ipiis_api::client::IpiisClient>;
+pub type IpsisClient = IpsisClientInner<::ipsis_common::ipiis_api::client::IpiisClient>;
 
-pub struct IpdisClientInner<IpiisClient> {
+pub struct IpsisClientInner<IpiisClient> {
     pub ipiis: IpiisClient,
     storage: Bucket,
 }
 
-impl<IpiisClient> AsRef<::ipdis_common::ipiis_api::client::IpiisClient>
-    for IpdisClientInner<IpiisClient>
+impl<IpiisClient> AsRef<::ipsis_common::ipiis_api::client::IpiisClient>
+    for IpsisClientInner<IpiisClient>
 where
-    IpiisClient: AsRef<::ipdis_common::ipiis_api::client::IpiisClient>,
+    IpiisClient: AsRef<::ipsis_common::ipiis_api::client::IpiisClient>,
 {
-    fn as_ref(&self) -> &::ipdis_common::ipiis_api::client::IpiisClient {
+    fn as_ref(&self) -> &::ipsis_common::ipiis_api::client::IpiisClient {
         self.ipiis.as_ref()
     }
 }
 
-impl<IpiisClient> AsRef<::ipdis_common::ipiis_api::server::IpiisServer>
-    for IpdisClientInner<IpiisClient>
+impl<IpiisClient> AsRef<::ipsis_common::ipiis_api::server::IpiisServer>
+    for IpsisClientInner<IpiisClient>
 where
-    IpiisClient: AsRef<::ipdis_common::ipiis_api::server::IpiisServer>,
+    IpiisClient: AsRef<::ipsis_common::ipiis_api::server::IpiisServer>,
 {
-    fn as_ref(&self) -> &::ipdis_common::ipiis_api::server::IpiisServer {
+    fn as_ref(&self) -> &::ipsis_common::ipiis_api::server::IpiisServer {
         self.ipiis.as_ref()
     }
 }
 
-impl<'a, IpiisClient> Infer<'a> for IpdisClientInner<IpiisClient>
+impl<'a, IpiisClient> Infer<'a> for IpsisClientInner<IpiisClient>
 where
     IpiisClient: Infer<'a, GenesisResult = IpiisClient>,
     <IpiisClient as Infer<'a>>::GenesisArgs: Sized,
@@ -58,14 +58,14 @@ where
     }
 }
 
-impl<IpiisClient> IpdisClientInner<IpiisClient> {
+impl<IpiisClient> IpsisClientInner<IpiisClient> {
     pub fn with_ipiis_client(ipiis: IpiisClient) -> Result<Self> {
         Ok(Self {
             ipiis,
             storage: {
-                let bucket_name: String = infer("ipdis_client_s3_bucket_name")?;
-                let region_name = infer("ipdis_client_s3_region_name")?;
-                let region = match infer::<_, String>("ipdis_client_s3_region") {
+                let bucket_name: String = infer("ipsis_client_s3_bucket_name")?;
+                let region_name = infer("ipsis_client_s3_region_name")?;
+                let region = match infer::<_, String>("ipsis_client_s3_region") {
                     Ok(endpoint) => s3::Region::Custom {
                         region: region_name,
                         endpoint: match endpoint.find("://") {
@@ -76,8 +76,8 @@ impl<IpiisClient> IpdisClientInner<IpiisClient> {
                     Err(_) => region_name.parse()?,
                 };
                 let credentials = s3::creds::Credentials::from_env_specific(
-                    Some("ipdis_client_s3_access_key"),
-                    Some("ipdis_client_s3_secret_key"),
+                    Some("ipsis_client_s3_access_key"),
+                    Some("ipsis_client_s3_secret_key"),
                     None,
                     None,
                 )?;
@@ -89,7 +89,7 @@ impl<IpiisClient> IpdisClientInner<IpiisClient> {
 }
 
 #[async_trait]
-impl<IpiisClient> Ipdis for IpdisClientInner<IpiisClient>
+impl<IpiisClient> Ipsis for IpsisClientInner<IpiisClient>
 where
     IpiisClient: Ipiis + Send + Sync,
 {

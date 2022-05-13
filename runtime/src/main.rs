@@ -1,7 +1,7 @@
-use ipdis_api::server::IpdisServer;
 use ipis::{env::Infer, tokio};
+use ipsis_api::server::IpsisServer;
 
 #[tokio::main]
 async fn main() {
-    IpdisServer::infer().run().await
+    IpsisServer::infer().run().await
 }

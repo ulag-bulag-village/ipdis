@@ -1,15 +1,15 @@
 [package]
-name = "ipdis-api-persistent-s3"
+name = "ipsis-api-persistent-s3"
 version = "0.1.0"
 edition = "2021"
 
 authors = ["Ho Kim <ho.kim@ulagbulag.io>"]
 description = "InterPlanetary Dictionary Server"
-documentation = "https://docs.rs/ipdis"
+documentation = "https://docs.rs/ipsis"
 license = "MIT OR Apache-2.0"
 readme = "../../../README.md"
 homepage = "https://ulagbulag.io/"
-repository = "https://github.com/ulagbulag-village/ipdis"
+repository = "https://github.com/ulagbulag-village/ipsis"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,7 +17,7 @@ repository = "https://github.com/ulagbulag-village/ipdis"
 ipis = { git = "https://github.com/ulagbulag-village/ipis", features = [
     "derive",
 ] }
-ipdis-common = { path = "../../../common" }
+ipsis-common = { path = "../../../common" }
 
 http = "0.2"
 rust-s3 = "0.31"

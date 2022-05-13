@@ -1,36 +1,36 @@
 use std::sync::Arc;
 
-use ipdis_common::{
-    ipiis_api::{client::IpiisClient, server::IpiisServer},
-    Ipdis, Request, RequestType, Response,
-};
 use ipis::{core::anyhow::Result, env::Infer, pin::Pinned};
+use ipsis_common::{
+    ipiis_api::{client::IpiisClient, server::IpiisServer},
+    Ipsis, Request, RequestType, Response,
+};
 
-use crate::client::IpdisClientInner;
+use crate::client::IpsisClientInner;
 
-pub struct IpdisServer {
-    client: Arc<IpdisClientInner<IpiisServer>>,
+pub struct IpsisServer {
+    client: Arc<IpsisClientInner<IpiisServer>>,
 }
 
-impl AsRef<IpiisClient> for IpdisServer {
+impl AsRef<IpiisClient> for IpsisServer {
     fn as_ref(&self) -> &IpiisClient {
         self.client.as_ref().as_ref()
     }
 }
 
-impl AsRef<IpiisServer> for IpdisServer {
+impl AsRef<IpiisServer> for IpsisServer {
     fn as_ref(&self) -> &IpiisServer {
         self.client.as_ref().as_ref()
     }
 }
 
-impl<'a> Infer<'a> for IpdisServer {
+impl<'a> Infer<'a> for IpsisServer {
     type GenesisArgs = <IpiisServer as Infer<'a>>::GenesisArgs;
     type GenesisResult = Self;
 
     fn try_infer() -> Result<Self> {
         Ok(Self {
-            client: IpdisClientInner::try_infer()?.into(),
+            client: IpsisClientInner::try_infer()?.into(),
         })
     }
 
@@ -38,12 +38,12 @@ impl<'a> Infer<'a> for IpdisServer {
         args: <Self as Infer<'a>>::GenesisArgs,
     ) -> Result<<Self as Infer<'a>>::GenesisResult> {
         Ok(Self {
-            client: IpdisClientInner::genesis(args)?.into(),
+            client: IpsisClientInner::genesis(args)?.into(),
         })
     }
 }
 
-impl IpdisServer {
+impl IpsisServer {
     pub async fn run(&self) {
         let client = self.client.clone();
 
@@ -52,7 +52,7 @@ impl IpdisServer {
     }
 
     async fn handle(
-        client: Arc<IpdisClientInner<IpiisServer>>,
+        client: Arc<IpsisClientInner<IpiisServer>>,
         req: Pinned<Request>,
     ) -> Result<Response> {
         // TODO: CURD without deserializing

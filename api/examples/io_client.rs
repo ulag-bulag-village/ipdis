@@ -1,11 +1,11 @@
 use bytecheck::CheckBytes;
-use ipdis_api::common::{ipiis_api::client::IpiisClient, Ipdis};
 use ipis::{
     class::Class,
     core::anyhow::{bail, Result},
     env::Infer,
     tokio,
 };
+use ipsis_api::common::{ipiis_api::client::IpiisClient, Ipsis};
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Class, Clone, Debug, PartialEq, Archive, Serialize, Deserialize)]

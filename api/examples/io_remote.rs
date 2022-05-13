@@ -1,16 +1,16 @@
 use bytecheck::CheckBytes;
-use ipdis_api::{
-    common::{
-        ipiis_api::{client::IpiisClient, common::Ipiis, server::IpiisServer},
-        Ipdis,
-    },
-    server::IpdisServer,
-};
 use ipis::{
     class::Class,
     core::anyhow::{bail, Result},
     env::Infer,
     tokio,
+};
+use ipsis_api::{
+    common::{
+        ipiis_api::{client::IpiisClient, common::Ipiis, server::IpiisServer},
+        Ipsis,
+    },
+    server::IpsisServer,
 };
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -25,7 +25,7 @@ pub struct MyData {
 #[tokio::main]
 async fn main() -> Result<()> {
     // deploy a server
-    let server = IpdisServer::genesis(5001)?;
+    let server = IpsisServer::genesis(5001)?;
     let server_account = {
         let server: &IpiisServer = server.as_ref();
         server.account_me().account_ref()

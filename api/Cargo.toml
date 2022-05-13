@@ -1,26 +1,26 @@
 [package]
-name = "ipdis-api"
+name = "ipsis-api"
 version = "0.1.0"
 edition = "2021"
 
 authors = ["Ho Kim <ho.kim@ulagbulag.io>"]
 description = "InterPlanetary Dictionary Server"
-documentation = "https://docs.rs/ipdis"
+documentation = "https://docs.rs/ipsis"
 license = "MIT OR Apache-2.0"
 readme = "../README.md"
 homepage = "https://ulagbulag.io/"
-repository = "https://github.com/ulagbulag-village/ipdis"
+repository = "https://github.com/ulagbulag-village/ipsis"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 default = ["s3"]
-s3 = ["ipdis-api-persistent-s3"]
+s3 = ["ipsis-api-persistent-s3"]
 
 [dependencies]
 ipis = { git = "https://github.com/ulagbulag-village/ipis" }
-ipdis-api-persistent-s3 = { path = "./persistent/s3", optional = true }
-ipdis-common = { path = "../common" }
+ipsis-api-persistent-s3 = { path = "./persistent/s3", optional = true }
+ipsis-common = { path = "../common" }
 
 [dev-dependencies]
 bytecheck = "0.6"

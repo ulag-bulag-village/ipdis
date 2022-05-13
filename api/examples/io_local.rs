@@ -1,11 +1,11 @@
 use bytecheck::CheckBytes;
-use ipdis_api::{client::IpdisClient, common::Ipdis};
 use ipis::{
     class::Class,
     core::anyhow::{bail, Result},
     env::Infer,
     tokio,
 };
+use ipsis_api::{client::IpsisClient, common::Ipsis};
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Class, Clone, Debug, PartialEq, Archive, Serialize, Deserialize)]
@@ -19,7 +19,7 @@ pub struct MyData {
 #[tokio::main]
 async fn main() -> Result<()> {
     // create a client
-    let client = IpdisClient::infer();
+    let client = IpsisClient::infer();
 
     // let's make a data we want to store
     let mut data = MyData {

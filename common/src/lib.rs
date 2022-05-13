@@ -23,7 +23,7 @@ use rkyv::{
 };
 
 #[async_trait]
-pub trait Ipdis {
+pub trait Ipsis {
     async fn get<Res>(&self, path: &Path) -> Result<Res>
     where
         Res: Class
@@ -64,7 +64,7 @@ pub trait Ipdis {
 }
 
 #[async_trait]
-impl Ipdis for IpiisClient {
+impl Ipsis for IpiisClient {
     async fn get_raw(&self, path: &Path) -> Result<Vec<u8>> {
         // next target
         let target = self.account_primary()?;

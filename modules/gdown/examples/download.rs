@@ -1,11 +1,11 @@
-use ipdis_api::client::IpdisClient;
-use ipdis_modules_gdown::IpdisGdown;
 use ipis::{core::anyhow::Result, env::Infer, path::Path, tokio};
+use ipsis_api::client::IpsisClient;
+use ipsis_modules_gdown::IpsisGdown;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     // create a client
-    let client = IpdisClient::try_infer()?;
+    let client = IpsisClient::try_infer()?;
 
     // we know the file's static path
     let id = "1gICu4NshBMQyUNgWsc2kydLBPpasIMNF";

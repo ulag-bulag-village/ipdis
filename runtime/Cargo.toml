@@ -1,18 +1,18 @@
 [package]
-name = "ipdis-runtime"
+name = "ipsis-runtime"
 version = "0.1.0"
 edition = "2021"
 
 authors = ["Ho Kim <ho.kim@ulagbulag.io>"]
 description = "InterPlanetary Dictionary Server"
-documentation = "https://docs.rs/ipdis"
+documentation = "https://docs.rs/ipsis"
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 readme = "../README.md"
 homepage = "https://ulagbulag.io/"
-repository = "https://github.com/ulagbulag-village/ipdis"
+repository = "https://github.com/ulagbulag-village/ipsis"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 ipis = { git = "https://github.com/ulagbulag-village/ipis" }
-ipdis-api = { path = "../api" }
+ipsis-api = { path = "../api" }

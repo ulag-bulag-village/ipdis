@@ -1,13 +1,13 @@
-use ipdis_common::Ipdis;
 use ipis::{
     async_trait::async_trait,
     core::anyhow::{anyhow, bail, Result},
     path::Path,
 };
+use ipsis_common::Ipsis;
 use reqwest::Client;
 
 #[async_trait]
-pub trait IpdisGdown: Ipdis {
+pub trait IpsisGdown: Ipsis {
     async fn gdown(&self, id: &str) -> Result<Path> {
         const URL: &str = "https://docs.google.com/uc?export=download";
 
@@ -61,4 +61,4 @@ pub trait IpdisGdown: Ipdis {
     }
 }
 
-impl<T: Ipdis> IpdisGdown for T {}
+impl<T: Ipsis> IpsisGdown for T {}
