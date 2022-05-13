@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 authors = ["Ho Kim <ho.kim@ulagbulag.io>"]
-description = "InterPlanetary Dictionary Server"
+description = "InterPlanetary Storage Integration Service"
 documentation = "https://docs.rs/ipsis"
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 readme = "../README.md"
