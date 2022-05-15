@@ -90,7 +90,7 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
 #[async_trait]
 impl<IpiisClient> Ipsis for IpsisClientInner<IpiisClient>
 where
-    IpiisClient: Ipiis + Ipsis + Send + Sync,
+    IpiisClient: Ipiis + Send + Sync,
 {
     async fn get_raw(&self, path: &Path) -> Result<Vec<u8>> {
         // get canonical path
