@@ -74,7 +74,6 @@ impl Ipsis for IpiisClient {
 
         // external call
         let (data,) = external_call!(
-            account: self.account_me().account_ref(),
             call: self
                 .call_permanent_deserialized(Opcode::TEXT, &target, req)
                 .await?,
@@ -106,7 +105,6 @@ impl Ipsis for IpiisClient {
 
         // external call
         let (path,) = external_call!(
-            account: self.account_me().account_ref(),
             call: self
                 .call_deserialized(Opcode::TEXT, &target, req)
                 .await?,
@@ -127,7 +125,6 @@ impl Ipsis for IpiisClient {
 
         // external call
         let (contains,) = external_call!(
-            account: self.account_me().account_ref(),
             call: self
                 .call_permanent_deserialized(Opcode::TEXT, &target, req)
                 .await?,
@@ -148,7 +145,6 @@ impl Ipsis for IpiisClient {
 
         // external call
         let () = external_call!(
-            account: self.account_me().account_ref(),
             call: self
                 .call_permanent_deserialized(Opcode::TEXT, &target, req)
                 .await?,
