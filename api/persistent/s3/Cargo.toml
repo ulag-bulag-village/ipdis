@@ -17,6 +17,7 @@ repository = "https://github.com/ulagbulag-village/ipsis"
 ipis = { git = "https://github.com/ulagbulag-village/ipis", features = [
     "derive",
 ] }
+ipiis-api = { git = "https://github.com/ulagbulag-village/ipiis" }
 ipsis-common = { path = "../../../common" }
 
 http = "0.2"

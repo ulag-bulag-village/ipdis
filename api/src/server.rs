@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
+use ipiis_api::{client::IpiisClient, server::IpiisServer};
 use ipis::{core::anyhow::Result, env::Infer, pin::Pinned};
-use ipsis_common::{
-    ipiis_api::{client::IpiisClient, server::IpiisServer},
-    Ipsis, Request, RequestType, Response,
-};
+use ipsis_common::{Ipsis, Request, RequestType, Response};
 
 use crate::client::IpsisClientInner;
 

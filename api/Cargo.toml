@@ -19,6 +19,7 @@ s3 = ["ipsis-api-persistent-s3"]
 
 [dependencies]
 ipis = { git = "https://github.com/ulagbulag-village/ipis" }
+ipiis-api = { git = "https://github.com/ulagbulag-village/ipiis" }
 ipsis-api-persistent-s3 = { path = "./persistent/s3", optional = true }
 ipsis-common = { path = "../common" }
 

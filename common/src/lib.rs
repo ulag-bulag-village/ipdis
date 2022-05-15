@@ -1,12 +1,7 @@
 #![feature(more_qualified_paths)]
 
-pub extern crate ipiis_api;
-
 use bytecheck::CheckBytes;
-use ipiis_api::{
-    client::IpiisClient,
-    common::{external_call, opcode::Opcode, Ipiis, Serializer},
-};
+use ipiis_common::{external_call, Ipiis, Serializer};
 use ipis::{
     async_trait::async_trait,
     class::Class,
@@ -64,7 +59,11 @@ pub trait Ipsis {
 }
 
 #[async_trait]
-impl Ipsis for IpiisClient {
+impl<IpiisClient> Ipsis for IpiisClient
+where
+    IpiisClient: Ipiis + Send + Sync,
+    <IpiisClient as Ipiis>::Opcode: Default,
+{
     async fn get_raw(&self, path: &Path) -> Result<Vec<u8>> {
         // next target
         let target = self.account_primary()?;
@@ -75,7 +74,7 @@ impl Ipsis for IpiisClient {
         // external call
         let (data,) = external_call!(
             call: self
-                .call_permanent_deserialized(Opcode::TEXT, &target, req)
+                .call_permanent_deserialized(Default::default(), &target, req)
                 .await?,
             response: Response => Get,
             items: { data },
@@ -106,7 +105,7 @@ impl Ipsis for IpiisClient {
         // external call
         let (path,) = external_call!(
             call: self
-                .call_deserialized(Opcode::TEXT, &target, req)
+                .call_deserialized(Default::default(), &target, req)
                 .await?,
             response: Response => Put,
             items: { path },
@@ -126,7 +125,7 @@ impl Ipsis for IpiisClient {
         // external call
         let (contains,) = external_call!(
             call: self
-                .call_permanent_deserialized(Opcode::TEXT, &target, req)
+                .call_permanent_deserialized(Default::default(), &target, req)
                 .await?,
             response: Response => Contains,
             items: { contains },
@@ -146,7 +145,7 @@ impl Ipsis for IpiisClient {
         // external call
         let () = external_call!(
             call: self
-                .call_permanent_deserialized(Opcode::TEXT, &target, req)
+                .call_permanent_deserialized(Default::default(), &target, req)
                 .await?,
             response: Response => Delete,
         );

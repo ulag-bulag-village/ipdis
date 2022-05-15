@@ -1,3 +1,4 @@
+use ipiis_api::common::Ipiis;
 use ipis::{
     async_trait::async_trait,
     core::{
@@ -9,32 +10,30 @@ use ipis::{
     log::warn,
     path::Path,
 };
-use ipsis_common::{ipiis_api::common::Ipiis, Ipsis};
+use ipsis_common::Ipsis;
 use s3::Bucket;
 
-pub type IpsisClient = IpsisClientInner<::ipsis_common::ipiis_api::client::IpiisClient>;
+pub type IpsisClient = IpsisClientInner<::ipiis_api::client::IpiisClient>;
 
 pub struct IpsisClientInner<IpiisClient> {
     pub ipiis: IpiisClient,
     storage: Bucket,
 }
 
-impl<IpiisClient> AsRef<::ipsis_common::ipiis_api::client::IpiisClient>
-    for IpsisClientInner<IpiisClient>
+impl<IpiisClient> AsRef<::ipiis_api::client::IpiisClient> for IpsisClientInner<IpiisClient>
 where
-    IpiisClient: AsRef<::ipsis_common::ipiis_api::client::IpiisClient>,
+    IpiisClient: AsRef<::ipiis_api::client::IpiisClient>,
 {
-    fn as_ref(&self) -> &::ipsis_common::ipiis_api::client::IpiisClient {
+    fn as_ref(&self) -> &::ipiis_api::client::IpiisClient {
         self.ipiis.as_ref()
     }
 }
 
-impl<IpiisClient> AsRef<::ipsis_common::ipiis_api::server::IpiisServer>
-    for IpsisClientInner<IpiisClient>
+impl<IpiisClient> AsRef<::ipiis_api::server::IpiisServer> for IpsisClientInner<IpiisClient>
 where
-    IpiisClient: AsRef<::ipsis_common::ipiis_api::server::IpiisServer>,
+    IpiisClient: AsRef<::ipiis_api::server::IpiisServer>,
 {
-    fn as_ref(&self) -> &::ipsis_common::ipiis_api::server::IpiisServer {
+    fn as_ref(&self) -> &::ipiis_api::server::IpiisServer {
         self.ipiis.as_ref()
     }
 }
