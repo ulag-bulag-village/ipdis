@@ -16,7 +16,7 @@ use s3::Bucket;
 pub type IpsisClient = IpsisClientInner<::ipiis_api::client::IpiisClient>;
 
 pub struct IpsisClientInner<IpiisClient> {
-    ipiis: IpiisClient,
+    pub ipiis: IpiisClient,
     storage: Bucket,
 }
 
