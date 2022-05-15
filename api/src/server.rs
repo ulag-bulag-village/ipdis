@@ -18,12 +18,6 @@ impl ::core::ops::Deref for IpsisServer {
     }
 }
 
-impl AsRef<::ipiis_api::client::IpiisClient> for IpsisServer {
-    fn as_ref(&self) -> &::ipiis_api::client::IpiisClient {
-        (*self.client).as_ref()
-    }
-}
-
 impl<'a> Infer<'a> for IpsisServer {
     type GenesisArgs = <IpiisServer as Infer<'a>>::GenesisArgs;
     type GenesisResult = Self;
@@ -47,7 +41,7 @@ impl IpsisServer {
     pub async fn run(&self) {
         let client = self.client.clone();
 
-        let runtime: &IpiisServer = &self.client;
+        let runtime: &IpiisServer = (*self.client).as_ref();
         runtime.run(client, Self::handle).await
     }
 

@@ -20,19 +20,20 @@ pub struct IpsisClientInner<IpiisClient> {
     storage: Bucket,
 }
 
-impl<IpiisClient> ::core::ops::Deref for IpsisClientInner<IpiisClient> {
-    type Target = IpiisClient;
-
-    fn deref(&self) -> &Self::Target {
-        &self.ipiis
-    }
-}
-
 impl<IpiisClient> AsRef<::ipiis_api::client::IpiisClient> for IpsisClientInner<IpiisClient>
 where
     IpiisClient: AsRef<::ipiis_api::client::IpiisClient>,
 {
     fn as_ref(&self) -> &::ipiis_api::client::IpiisClient {
+        self.ipiis.as_ref()
+    }
+}
+
+impl<IpiisClient> AsRef<::ipiis_api::server::IpiisServer> for IpsisClientInner<IpiisClient>
+where
+    IpiisClient: AsRef<::ipiis_api::server::IpiisServer>,
+{
+    fn as_ref(&self) -> &::ipiis_api::server::IpiisServer {
         self.ipiis.as_ref()
     }
 }
@@ -89,7 +90,7 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
 #[async_trait]
 impl<IpiisClient> Ipsis for IpsisClientInner<IpiisClient>
 where
-    IpiisClient: Ipiis + Send + Sync,
+    IpiisClient: Ipiis + Ipsis + Send + Sync,
 {
     async fn get_raw(&self, path: &Path) -> Result<Vec<u8>> {
         // get canonical path
