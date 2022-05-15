@@ -16,8 +16,16 @@ use s3::Bucket;
 pub type IpsisClient = IpsisClientInner<::ipiis_api::client::IpiisClient>;
 
 pub struct IpsisClientInner<IpiisClient> {
-    pub ipiis: IpiisClient,
+    ipiis: IpiisClient,
     storage: Bucket,
+}
+
+impl<IpiisClient> ::core::ops::Deref for IpsisClientInner<IpiisClient> {
+    type Target = IpiisClient;
+
+    fn deref(&self) -> &Self::Target {
+        &self.ipiis
+    }
 }
 
 impl<IpiisClient> AsRef<::ipiis_api::client::IpiisClient> for IpsisClientInner<IpiisClient>
@@ -25,15 +33,6 @@ where
     IpiisClient: AsRef<::ipiis_api::client::IpiisClient>,
 {
     fn as_ref(&self) -> &::ipiis_api::client::IpiisClient {
-        self.ipiis.as_ref()
-    }
-}
-
-impl<IpiisClient> AsRef<::ipiis_api::server::IpiisServer> for IpsisClientInner<IpiisClient>
-where
-    IpiisClient: AsRef<::ipiis_api::server::IpiisServer>,
-{
-    fn as_ref(&self) -> &::ipiis_api::server::IpiisServer {
         self.ipiis.as_ref()
     }
 }

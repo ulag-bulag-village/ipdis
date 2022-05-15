@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use ipiis_api::{client::IpiisClient, server::IpiisServer};
+use ipiis_api::server::IpiisServer;
 use ipis::{core::anyhow::Result, env::Infer, pin::Pinned};
 use ipsis_common::{Ipsis, Request, RequestType, Response};
 
@@ -10,15 +10,17 @@ pub struct IpsisServer {
     client: Arc<IpsisClientInner<IpiisServer>>,
 }
 
-impl AsRef<IpiisClient> for IpsisServer {
-    fn as_ref(&self) -> &IpiisClient {
-        self.client.as_ref().as_ref()
+impl ::core::ops::Deref for IpsisServer {
+    type Target = IpsisClientInner<IpiisServer>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.client
     }
 }
 
-impl AsRef<IpiisServer> for IpsisServer {
-    fn as_ref(&self) -> &IpiisServer {
-        self.client.as_ref().as_ref()
+impl AsRef<::ipiis_api::client::IpiisClient> for IpsisServer {
+    fn as_ref(&self) -> &::ipiis_api::client::IpiisClient {
+        (*self.client).as_ref()
     }
 }
 
@@ -28,7 +30,7 @@ impl<'a> Infer<'a> for IpsisServer {
 
     fn try_infer() -> Result<Self> {
         Ok(Self {
-            client: IpsisClientInner::try_infer()?.into(),
+            client: IpsisClientInner::<IpiisServer>::try_infer()?.into(),
         })
     }
 
@@ -36,7 +38,7 @@ impl<'a> Infer<'a> for IpsisServer {
         args: <Self as Infer<'a>>::GenesisArgs,
     ) -> Result<<Self as Infer<'a>>::GenesisResult> {
         Ok(Self {
-            client: IpsisClientInner::genesis(args)?.into(),
+            client: IpsisClientInner::<IpiisServer>::genesis(args)?.into(),
         })
     }
 }
@@ -45,7 +47,7 @@ impl IpsisServer {
     pub async fn run(&self) {
         let client = self.client.clone();
 
-        let runtime: &IpiisServer = self.client.as_ref().as_ref();
+        let runtime: &IpiisServer = &self.client;
         runtime.run(client, Self::handle).await
     }
 
