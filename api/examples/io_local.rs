@@ -19,7 +19,7 @@ pub struct MyData {
 #[tokio::main]
 async fn main() -> Result<()> {
     // create a client
-    let client = IpsisClient::infer();
+    let client = IpsisClient::infer().await;
 
     // let's make a data we want to store
     let mut data = MyData {

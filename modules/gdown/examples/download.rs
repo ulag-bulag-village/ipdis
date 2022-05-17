@@ -5,7 +5,7 @@ use ipsis_modules_gdown::IpsisGdown;
 #[tokio::main]
 async fn main() -> Result<()> {
     // create a client
-    let client = IpsisClient::try_infer()?;
+    let client = IpsisClient::try_infer().await?;
 
     // we know the file's static path
     let id = "1gICu4NshBMQyUNgWsc2kydLBPpasIMNF";

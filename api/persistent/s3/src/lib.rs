@@ -38,22 +38,28 @@ where
     }
 }
 
+#[async_trait]
 impl<'a, IpiisClient> Infer<'a> for IpsisClientInner<IpiisClient>
 where
+    Self: Send,
     IpiisClient: Infer<'a, GenesisResult = IpiisClient>,
     <IpiisClient as Infer<'a>>::GenesisArgs: Sized,
 {
     type GenesisArgs = <IpiisClient as Infer<'a>>::GenesisArgs;
     type GenesisResult = Self;
 
-    fn try_infer() -> Result<Self> {
-        IpiisClient::try_infer().and_then(Self::with_ipiis_client)
+    async fn try_infer() -> Result<Self> {
+        IpiisClient::try_infer()
+            .await
+            .and_then(Self::with_ipiis_client)
     }
 
-    fn genesis(
+    async fn genesis(
         args: <Self as Infer<'a>>::GenesisArgs,
     ) -> Result<<Self as Infer<'a>>::GenesisResult> {
-        IpiisClient::genesis(args).and_then(Self::with_ipiis_client)
+        IpiisClient::genesis(args)
+            .await
+            .and_then(Self::with_ipiis_client)
     }
 }
 

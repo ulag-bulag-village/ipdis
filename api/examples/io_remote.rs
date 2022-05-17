@@ -20,7 +20,7 @@ pub struct MyData {
 #[tokio::main]
 async fn main() -> Result<()> {
     // deploy a server
-    let server = IpsisServer::genesis(5001)?;
+    let server = IpsisServer::genesis(5001).await?;
     let server_account = {
         let server: &IpiisServer = server.as_ref();
         server.account_me().account_ref()
@@ -28,7 +28,7 @@ async fn main() -> Result<()> {
     tokio::spawn(async move { server.run().await });
 
     // create a client
-    let client = IpiisClient::genesis(Some(server_account))?;
+    let client = IpiisClient::genesis(Some(server_account)).await?;
     client.add_address(server_account, "127.0.0.1:5001".parse()?)?;
 
     // let's make a data we want to store

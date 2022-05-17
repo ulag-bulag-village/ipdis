@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use ipiis_api::server::IpiisServer;
-use ipis::{core::anyhow::Result, env::Infer, pin::Pinned};
+use ipis::{async_trait::async_trait, core::anyhow::Result, env::Infer, pin::Pinned};
 use ipsis_common::{Ipsis, Request, RequestType, Response};
 
 use crate::client::IpsisClientInner;
@@ -18,21 +18,22 @@ impl ::core::ops::Deref for IpsisServer {
     }
 }
 
+#[async_trait]
 impl<'a> Infer<'a> for IpsisServer {
     type GenesisArgs = <IpiisServer as Infer<'a>>::GenesisArgs;
     type GenesisResult = Self;
 
-    fn try_infer() -> Result<Self> {
+    async fn try_infer() -> Result<Self> {
         Ok(Self {
-            client: IpsisClientInner::<IpiisServer>::try_infer()?.into(),
+            client: IpsisClientInner::<IpiisServer>::try_infer().await?.into(),
         })
     }
 
-    fn genesis(
+    async fn genesis(
         args: <Self as Infer<'a>>::GenesisArgs,
     ) -> Result<<Self as Infer<'a>>::GenesisResult> {
         Ok(Self {
-            client: IpsisClientInner::<IpiisServer>::genesis(args)?.into(),
+            client: IpsisClientInner::<IpiisServer>::genesis(args).await?.into(),
         })
     }
 }

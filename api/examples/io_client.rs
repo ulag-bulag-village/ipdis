@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
     );
 
     // create a client
-    let client = IpiisClient::infer();
+    let client = IpiisClient::infer().await;
 
     // let's make a data we want to store
     let mut data = MyData {
