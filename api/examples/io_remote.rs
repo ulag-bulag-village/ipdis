@@ -71,6 +71,10 @@ async fn main() -> Result<()> {
     // data is not exist after DELETE
     match client.get::<MyData>(&path_update_changed).await {
         Ok(_) => bail!("data not deleted!"),
-        Err(_) => Ok(()),
+        Err(_) => {
+            assert!(!client.contains(&path_create).await?);
+            assert!(!client.contains(&path_update_changed).await?);
+            Ok(())
+        }
     }
 }
