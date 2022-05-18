@@ -1,5 +1,5 @@
 use ipis::{core::anyhow::Result, env::Infer, path::Path, tokio};
-use ipsis_api::client::IpsisClient;
+use ipsis_api::{client::IpsisClient, common::Ipsis};
 use ipsis_modules_gdown::IpsisGdown;
 
 #[tokio::main]
@@ -8,13 +8,14 @@ async fn main() -> Result<()> {
     let client = IpsisClient::try_infer().await?;
 
     // we know the file's static path
-    let id = "1gICu4NshBMQyUNgWsc2kydLBPpasIMNF";
+    let id = "1l-OwuECuYRgSk3JIOz0xgFqiqomKi1ct";
     let path = Path {
-        value: "FjL3dTmyrudvLxFcezJ7b3oGq7Q48ZUS8HH5e4wajVL7".parse()?,
-        len: 496_300_196,
+        value: "Gx1fwyQphUwVU5E2HRbx7H6t7QVZ8XsMzrFz6TnyxaC1".parse()?,
+        len: 13,
     };
 
     // download from gdrive
     client.gdown_static(id, &path).await?;
+    assert!(client.contains(&path).await?);
     Ok(())
 }
