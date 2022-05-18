@@ -62,11 +62,10 @@ pub trait Ipsis {
 impl<IpiisClient> Ipsis for IpiisClient
 where
     IpiisClient: Ipiis + Send + Sync,
-    <IpiisClient as Ipiis>::Opcode: Default,
 {
     async fn get_raw(&self, path: &Path) -> Result<Vec<u8>> {
         // next target
-        let target = self.account_primary()?;
+        let target = self.get_account_primary(KIND.as_ref()).await?;
 
         // pack request
         let req = RequestType::Get { path: *path };
@@ -74,7 +73,7 @@ where
         // external call
         let (data,) = external_call!(
             call: self
-                .call_permanent_deserialized(Default::default(), &target, req)
+                .call_permanent_deserialized(&target, req)
                 .await?,
             response: Response => Get,
             items: { data },
@@ -86,7 +85,7 @@ where
 
     async fn put_raw(&self, data: Vec<u8>, expiration_date: Option<DateTime>) -> Result<Path> {
         // next target
-        let target = self.account_primary()?;
+        let target = self.get_account_primary(KIND.as_ref()).await?;
 
         // pack request
         let req = RequestType::Put { data };
@@ -105,7 +104,7 @@ where
         // external call
         let (path,) = external_call!(
             call: self
-                .call_deserialized(Default::default(), &target, req)
+                .call_deserialized(&target, req)
                 .await?,
             response: Response => Put,
             items: { path },
@@ -117,7 +116,7 @@ where
 
     async fn contains(&self, path: &Path) -> Result<bool> {
         // next target
-        let target = self.account_primary()?;
+        let target = self.get_account_primary(KIND.as_ref()).await?;
 
         // pack request
         let req = RequestType::Contains { path: *path };
@@ -125,7 +124,7 @@ where
         // external call
         let (contains,) = external_call!(
             call: self
-                .call_permanent_deserialized(Default::default(), &target, req)
+                .call_permanent_deserialized(&target, req)
                 .await?,
             response: Response => Contains,
             items: { contains },
@@ -137,7 +136,7 @@ where
 
     async fn delete(&self, path: &Path) -> Result<()> {
         // next target
-        let target = self.account_primary()?;
+        let target = self.get_account_primary(KIND.as_ref()).await?;
 
         // pack request
         let req = RequestType::Delete { path: *path };
@@ -145,7 +144,7 @@ where
         // external call
         let () = external_call!(
             call: self
-                .call_permanent_deserialized(Default::default(), &target, req)
+                .call_permanent_deserialized(&target, req)
                 .await?,
             response: Response => Delete,
         );
@@ -175,4 +174,10 @@ pub enum Response {
     Put { path: Path },
     Contains { contains: bool },
     Delete,
+}
+
+::ipis::lazy_static::lazy_static! {
+    pub static ref KIND: Option<::ipis::core::value::hash::Hash> = Some(
+        ::ipis::core::value::hash::Hash::with_str("__ipis__ipsis__"),
+    );
 }

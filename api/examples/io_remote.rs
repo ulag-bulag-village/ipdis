@@ -6,7 +6,10 @@ use ipis::{
     env::Infer,
     tokio,
 };
-use ipsis_api::{common::Ipsis, server::IpsisServer};
+use ipsis_api::{
+    common::{Ipsis, KIND},
+    server::IpsisServer,
+};
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Class, Clone, Debug, PartialEq, Archive, Serialize, Deserialize)]
@@ -28,8 +31,13 @@ async fn main() -> Result<()> {
     tokio::spawn(async move { server.run().await });
 
     // create a client
-    let client = IpiisClient::genesis(Some(server_account)).await?;
-    client.add_address(server_account, "127.0.0.1:5001".parse()?)?;
+    let client = IpiisClient::genesis(None).await?;
+    client
+        .set_account_primary(KIND.as_ref(), &server_account)
+        .await?;
+    client
+        .set_address(&server_account, &"127.0.0.1:5001".parse()?)
+        .await?;
 
     // let's make a data we want to store
     let mut data = MyData {

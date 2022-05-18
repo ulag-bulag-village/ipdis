@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
         "32GLwJuG6igvTGtbXzjAG7iPMB4zoVY7jTZndR6kSdwSZiciLGozKKkTEhawcJKjzNcpLLLarmscB72m2M4u4sSw",
     );
     ::std::env::set_var(
-        "ipiis_client_account_primary_address",
+        "ipiis_account_primary_address",
         // NOTE: please hide it if you want to use it for production
         "127.0.0.1:5001",
     );
