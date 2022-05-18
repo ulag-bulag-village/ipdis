@@ -47,6 +47,7 @@ async fn main() -> Result<()> {
 
     // CREATE
     let path_create = client.put(&data, None).await?;
+    assert!(client.contains(&path_create).await?);
 
     // UPDATE (identity)
     let path_update_identity = client.put(&data, None).await?;
