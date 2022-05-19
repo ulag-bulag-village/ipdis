@@ -74,7 +74,7 @@ impl IpsisServer {
         let sign_as_guarantee = req.__sign.into_owned().await?;
 
         // unpack data
-        let path = req.path.into_owned().await?;
+        let path = sign_as_guarantee.data.data;
 
         // handle data
         let mut data = client.get_raw(&path).await?;
@@ -112,7 +112,7 @@ impl IpsisServer {
             DynStream::recv(&mut recv).await?.into_owned().await?;
 
         // unpack data
-        let path: Path = DynStream::recv(&mut recv).await?.into_owned().await?;
+        let path = sign_as_guarantee.data.data;
 
         // validate the length
         let len = recv.read_u64().await?;
@@ -142,7 +142,7 @@ impl IpsisServer {
         let sign_as_guarantee = req.__sign.into_owned().await?;
 
         // unpack data
-        let path = req.path.into_owned().await?;
+        let path = sign_as_guarantee.data.data;
 
         // handle data
         let contains = client.contains(&path).await?;
@@ -167,7 +167,7 @@ impl IpsisServer {
         let sign_as_guarantee = req.__sign.into_owned().await?;
 
         // unpack data
-        let path = req.path.into_owned().await?;
+        let path = sign_as_guarantee.data.data;
 
         // handle data
         let () = client.delete(&path).await?;

@@ -92,9 +92,7 @@ where
             target: KIND.as_ref() => &target,
             request: crate::io => Get,
             sign: self.sign(target, *path)?,
-            inputs: {
-                path: *path,
-            },
+            inputs: { },
             outputs: send,
         );
 
@@ -121,7 +119,6 @@ where
             request: crate::io => Put,
             sign: self.sign(target, *path)?,
             inputs: {
-                path: DynStream::Owned(*path),
                 data: DynStream::Stream {
                     len: path.len,
                     recv: Box::pin(data),
@@ -144,9 +141,7 @@ where
             target: KIND.as_ref() => &target,
             request: crate::io => Contains,
             sign: self.sign(target, *path)?,
-            inputs: {
-                path: *path,
-            },
+            inputs: { },
             outputs: { contains, },
         );
 
@@ -164,9 +159,7 @@ where
             target: KIND.as_ref() => &target,
             request: crate::io => Delete,
             sign: self.sign(target, *path)?,
-            inputs: {
-                path: *path,
-            },
+            inputs: { },
             outputs: { },
         );
 
@@ -177,9 +170,7 @@ where
 
 define_io! {
     Get {
-        inputs: {
-            path: Path,
-        },
+        inputs: { },
         input_sign: GuaranteeSigned<Path>,
         outputs: {
             data: Vec<u8>,
@@ -189,7 +180,6 @@ define_io! {
     },
     Put {
         inputs: {
-            path: Path,
             data: Vec<u8>,
         },
         input_sign: GuaranteeSigned<Path>,
@@ -198,9 +188,7 @@ define_io! {
         generics: { },
     },
     Contains {
-        inputs: {
-            path: Path,
-        },
+        inputs: { },
         input_sign: GuaranteeSigned<Path>,
         outputs: {
             contains: bool,
@@ -209,9 +197,7 @@ define_io! {
         generics: { },
     },
     Delete {
-        inputs: {
-            path: Path,
-        },
+        inputs: { },
         input_sign: GuaranteeSigned<Path>,
         outputs: { },
         output_sign: GuarantorSigned<Path>,
