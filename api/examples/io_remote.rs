@@ -2,7 +2,10 @@ use bytecheck::CheckBytes;
 use ipiis_api::{client::IpiisClient, common::Ipiis, server::IpiisServer};
 use ipis::{
     class::Class,
-    core::anyhow::{bail, Result},
+    core::{
+        anyhow::{bail, Result},
+        signed::IsSigned,
+    },
     env::Infer,
     tokio,
 };
@@ -20,6 +23,8 @@ pub struct MyData {
     age: u32,
 }
 
+impl IsSigned for MyData {}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // deploy a server
@@ -36,7 +41,7 @@ async fn main() -> Result<()> {
         .set_account_primary(KIND.as_ref(), &server_account)
         .await?;
     client
-        .set_address(&server_account, &"127.0.0.1:5001".parse()?)
+        .set_address(KIND.as_ref(), &server_account, &"127.0.0.1:5001".parse()?)
         .await?;
 
     // let's make a data we want to store
@@ -46,18 +51,18 @@ async fn main() -> Result<()> {
     };
 
     // CREATE
-    let path_create = client.put(&data, None).await?;
+    let path_create = client.put(&data).await?;
     assert!(client.contains(&path_create).await?);
 
     // UPDATE (identity)
-    let path_update_identity = client.put(&data, None).await?;
+    let path_update_identity = client.put(&data).await?;
     assert_eq!(&path_create, &path_update_identity); // SAME Path
 
     // let's modify the data so that it has a different path
     data.name = "Bob".to_string();
 
     // UPDATE (changed)
-    let path_update_changed = client.put(&data, None).await?;
+    let path_update_changed = client.put(&data).await?;
     assert_ne!(&path_create, &path_update_changed); // CHANGED Path
 
     // READ

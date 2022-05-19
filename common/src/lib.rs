@@ -1,16 +1,21 @@
-#![feature(more_qualified_paths)]
+use std::io::Cursor;
 
 use bytecheck::CheckBytes;
-use ipiis_common::{external_call, Ipiis, Serializer};
+use ipiis_common::{define_io, external_call, Ipiis, ServerResult};
 use ipis::{
     async_trait::async_trait,
     class::Class,
     core::{
-        account::GuaranteeSigned, anyhow::Result, metadata::Metadata,
-        signature::SignatureSerializer, value::chrono::DateTime,
+        account::{GuaranteeSigned, GuarantorSigned, Verifier},
+        anyhow::Result,
+        signature::SignatureSerializer,
+        signed::{IsSigned, Serializer},
+        value::hash::Hash,
     },
+    futures::TryFutureExt,
     path::Path,
-    pin::PinnedInner,
+    stream::DynStream,
+    tokio::io::AsyncRead,
 };
 use rkyv::{
     de::deserializers::SharedDeserializeMap, validation::validators::DefaultValidator, Archive,
@@ -19,39 +24,51 @@ use rkyv::{
 
 #[async_trait]
 pub trait Ipsis {
+    type Reader: AsyncRead + Send + Unpin + 'static;
+
     async fn get<Res>(&self, path: &Path) -> Result<Res>
     where
         Res: Class
             + Archive
             + Serialize<SignatureSerializer>
+            + Serialize<Serializer>
+            + IsSigned
+            + Clone
             + ::core::fmt::Debug
             + PartialEq
-            + Send,
+            + Send
+            + Sync
+            + 'static,
         <Res as Archive>::Archived: for<'a> CheckBytes<DefaultValidator<'a>>
             + Deserialize<Res, SharedDeserializeMap>
             + ::core::fmt::Debug
             + PartialEq
             + Send,
     {
-        {
-            self.get_raw(path)
-                .await
-                .and_then(PinnedInner::deserialize_owned)
-        }
+        self.get_raw(path)
+            .and_then(|stream| async { DynStream::recv(stream).await?.into_owned().await })
+            .await
     }
 
-    async fn get_raw(&self, path: &Path) -> Result<Vec<u8>>;
+    async fn get_raw(&self, path: &Path) -> Result<<Self as Ipsis>::Reader>;
 
-    async fn put<Req>(&self, data: &Req, expiration_date: Option<DateTime>) -> Result<Path>
+    async fn put<Req>(&self, data: &Req) -> Result<Path>
     where
         Req: Serialize<Serializer> + Send + Sync,
     {
-        let data = ::rkyv::to_bytes(data)?.to_vec();
+        let data = ::rkyv::to_bytes(data)?;
+        let path = Path {
+            value: Hash::with_bytes(&data),
+            len: data.len().try_into()?,
+        };
 
-        self.put_raw(data, expiration_date).await
+        self.put_raw(&path, Cursor::new(data)).await?;
+        Ok(path)
     }
 
-    async fn put_raw(&self, data: Vec<u8>, expiration_date: Option<DateTime>) -> Result<Path>;
+    async fn put_raw<R>(&self, path: &Path, data: R) -> Result<()>
+    where
+        R: AsyncRead + Send + Unpin + 'static;
 
     async fn contains(&self, path: &Path) -> Result<bool>;
 
@@ -63,71 +80,74 @@ impl<IpiisClient> Ipsis for IpiisClient
 where
     IpiisClient: Ipiis + Send + Sync,
 {
-    async fn get_raw(&self, path: &Path) -> Result<Vec<u8>> {
+    type Reader = <IpiisClient as Ipiis>::Reader;
+
+    async fn get_raw(&self, path: &Path) -> Result<<Self as Ipsis>::Reader> {
         // next target
         let target = self.get_account_primary(KIND.as_ref()).await?;
 
-        // pack request
-        let req = RequestType::Get { path: *path };
-
         // external call
-        let (data,) = external_call!(
-            call: self
-                .call_permanent_deserialized(&target, req)
-                .await?,
-            response: Response => Get,
-            items: { data },
+        let mut recv = external_call!(
+            client: self,
+            target: KIND.as_ref() => &target,
+            request: crate::io => Get,
+            sign: self.sign(target, *path)?,
+            inputs: {
+                path: *path,
+            },
+            outputs: send,
         );
 
-        // unpack response
-        Ok(data)
+        // recv sign
+        let sign: GuarantorSigned<Path> = DynStream::recv(&mut recv).await?.into_owned().await?;
+
+        // verify sign
+        let _ = sign.verify(Some(target))?;
+
+        Ok(recv)
     }
 
-    async fn put_raw(&self, data: Vec<u8>, expiration_date: Option<DateTime>) -> Result<Path> {
+    async fn put_raw<R>(&self, path: &Path, data: R) -> Result<()>
+    where
+        R: AsyncRead + Send + Unpin + 'static,
+    {
         // next target
         let target = self.get_account_primary(KIND.as_ref()).await?;
 
-        // pack request
-        let req = RequestType::Put { data };
-
-        // sign request
-        let req = {
-            let mut builder = Metadata::builder();
-
-            if let Some(expiration_date) = expiration_date {
-                builder = builder.expiration_date(expiration_date);
-            }
-
-            builder.build(self.account_me(), target, req)?
-        };
-
         // external call
-        let (path,) = external_call!(
-            call: self
-                .call_deserialized(&target, req)
-                .await?,
-            response: Response => Put,
-            items: { path },
+        let () = external_call!(
+            client: self,
+            target: KIND.as_ref() => &target,
+            request: crate::io => Put,
+            sign: self.sign(target, *path)?,
+            inputs: {
+                path: DynStream::Owned(*path),
+                data: DynStream::Stream {
+                    len: path.len,
+                    recv: Box::pin(data),
+                },
+            },
+            inputs_mode: none,
+            outputs: { },
         );
 
-        // unpack response
-        Ok(path)
+        Ok(())
     }
 
     async fn contains(&self, path: &Path) -> Result<bool> {
         // next target
         let target = self.get_account_primary(KIND.as_ref()).await?;
 
-        // pack request
-        let req = RequestType::Contains { path: *path };
-
         // external call
         let (contains,) = external_call!(
-            call: self
-                .call_permanent_deserialized(&target, req)
-                .await?,
-            response: Response => Contains,
-            items: { contains },
+            client: self,
+            target: KIND.as_ref() => &target,
+            request: crate::io => Contains,
+            sign: self.sign(target, *path)?,
+            inputs: {
+                path: *path,
+            },
+            outputs: { contains, },
         );
 
         // unpack response
@@ -138,15 +158,16 @@ where
         // next target
         let target = self.get_account_primary(KIND.as_ref()).await?;
 
-        // pack request
-        let req = RequestType::Delete { path: *path };
-
         // external call
         let () = external_call!(
-            call: self
-                .call_permanent_deserialized(&target, req)
-                .await?,
-            response: Response => Delete,
+            client: self,
+            target: KIND.as_ref() => &target,
+            request: crate::io => Delete,
+            sign: self.sign(target, *path)?,
+            inputs: {
+                path: *path,
+            },
+            outputs: { },
         );
 
         // unpack response
@@ -154,26 +175,48 @@ where
     }
 }
 
-pub type Request = GuaranteeSigned<RequestType>;
-
-#[derive(Clone, Debug, PartialEq, Archive, Serialize, Deserialize)]
-#[archive(compare(PartialEq))]
-#[archive_attr(derive(CheckBytes, Debug, PartialEq))]
-pub enum RequestType {
-    Get { path: Path },
-    Put { data: Vec<u8> },
-    Contains { path: Path },
-    Delete { path: Path },
-}
-
-#[derive(Clone, Debug, PartialEq, Archive, Serialize, Deserialize)]
-#[archive(compare(PartialEq))]
-#[archive_attr(derive(CheckBytes, Debug, PartialEq))]
-pub enum Response {
-    Get { data: Vec<u8> },
-    Put { path: Path },
-    Contains { contains: bool },
-    Delete,
+define_io! {
+    Get {
+        inputs: {
+            path: Path,
+        },
+        input_sign: GuaranteeSigned<Path>,
+        outputs: {
+            data: Vec<u8>,
+        },
+        output_sign: GuarantorSigned<Path>,
+        generics: { },
+    },
+    Put {
+        inputs: {
+            path: Path,
+            data: Vec<u8>,
+        },
+        input_sign: GuaranteeSigned<Path>,
+        outputs: { },
+        output_sign: GuarantorSigned<Path>,
+        generics: { },
+    },
+    Contains {
+        inputs: {
+            path: Path,
+        },
+        input_sign: GuaranteeSigned<Path>,
+        outputs: {
+            contains: bool,
+        },
+        output_sign: GuarantorSigned<Path>,
+        generics: { },
+    },
+    Delete {
+        inputs: {
+            path: Path,
+        },
+        input_sign: GuaranteeSigned<Path>,
+        outputs: { },
+        output_sign: GuarantorSigned<Path>,
+        generics: { },
+    },
 }
 
 ::ipis::lazy_static::lazy_static! {

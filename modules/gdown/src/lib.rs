@@ -1,6 +1,11 @@
+use std::io::Cursor;
+
 use ipis::{
     async_trait::async_trait,
-    core::anyhow::{anyhow, bail, Result},
+    core::{
+        anyhow::{anyhow, bail, Result},
+        value::hash::Hash,
+    },
     path::Path,
 };
 use ipsis_common::Ipsis;
@@ -40,8 +45,16 @@ pub trait IpsisGdown: Ipsis {
                 .await?;
         }
 
-        let data = response.bytes().await?.to_vec();
-        self.put_raw(data, None).await
+        // digest a hash
+        let data = response.bytes().await?;
+        let path = Path {
+            value: Hash::with_bytes(&data),
+            len: data.len().try_into()?,
+        };
+
+        // store data
+        self.put_raw(&path, Cursor::new(data)).await?;
+        Ok(path)
     }
 
     async fn gdown_static(&self, id: &str, path: &Path) -> Result<()> {

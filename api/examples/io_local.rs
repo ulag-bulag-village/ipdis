@@ -1,7 +1,10 @@
 use bytecheck::CheckBytes;
 use ipis::{
     class::Class,
-    core::anyhow::{bail, Result},
+    core::{
+        anyhow::{bail, Result},
+        signed::IsSigned,
+    },
     env::Infer,
     tokio,
 };
@@ -16,6 +19,8 @@ pub struct MyData {
     age: u32,
 }
 
+impl IsSigned for MyData {}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // create a client
@@ -28,18 +33,18 @@ async fn main() -> Result<()> {
     };
 
     // CREATE
-    let path_create = client.put(&data, None).await?;
+    let path_create = client.put(&data).await?;
     assert!(client.contains(&path_create).await?);
 
     // UPDATE (identity)
-    let path_update_identity = client.put(&data, None).await?;
+    let path_update_identity = client.put(&data).await?;
     assert_eq!(&path_create, &path_update_identity); // SAME Path
 
     // let's modify the data so that it has a different path
     data.name = "Bob".to_string();
 
     // UPDATE (changed)
-    let path_update_changed = client.put(&data, None).await?;
+    let path_update_changed = client.put(&data).await?;
     assert_ne!(&path_create, &path_update_changed); // CHANGED Path
 
     // READ

@@ -1,12 +1,16 @@
 use bytecheck::CheckBytes;
-use ipiis_api::client::IpiisClient;
+use ipiis_api::{client::IpiisClient, common::Ipiis};
 use ipis::{
     class::Class,
-    core::anyhow::{bail, Result},
+    core::{
+        anyhow::{bail, Result},
+        signed::IsSigned,
+    },
     env::Infer,
     tokio,
 };
 use ipsis_api::common::Ipsis;
+use ipsis_common::KIND;
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Class, Clone, Debug, PartialEq, Archive, Serialize, Deserialize)]
@@ -17,22 +21,22 @@ pub struct MyData {
     age: u32,
 }
 
+impl IsSigned for MyData {}
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    // set environment variables
-    ::std::env::set_var(
-        "ipis_account_me",
-        // NOTE: please hide it if you want to use it for production
-        "32GLwJuG6igvTGtbXzjAG7iPMB4zoVY7jTZndR6kSdwSZiciLGozKKkTEhawcJKjzNcpLLLarmscB72m2M4u4sSw",
-    );
-    ::std::env::set_var(
-        "ipiis_account_primary_address",
-        // NOTE: please hide it if you want to use it for production
-        "127.0.0.1:5001",
-    );
-
     // create a client
     let client = IpiisClient::infer().await;
+    client
+        .set_account_primary(KIND.as_ref(), &client.account_me().account_ref())
+        .await?;
+    client
+        .set_address(
+            KIND.as_ref(),
+            &client.account_me().account_ref(),
+            &"127.0.0.1:5001".parse()?,
+        )
+        .await?;
 
     // let's make a data we want to store
     let mut data = MyData {
@@ -41,18 +45,18 @@ async fn main() -> Result<()> {
     };
 
     // CREATE
-    let path_create = client.put(&data, None).await?;
+    let path_create = client.put(&data).await?;
     assert!(client.contains(&path_create).await?);
 
     // UPDATE (identity)
-    let path_update_identity = client.put(&data, None).await?;
+    let path_update_identity = client.put(&data).await?;
     assert_eq!(&path_create, &path_update_identity); // SAME Path
 
     // let's modify the data so that it has a different path
     data.name = "Bob".to_string();
 
     // UPDATE (changed)
-    let path_update_changed = client.put(&data, None).await?;
+    let path_update_changed = client.put(&data).await?;
     assert_ne!(&path_create, &path_update_changed); // CHANGED Path
 
     // READ

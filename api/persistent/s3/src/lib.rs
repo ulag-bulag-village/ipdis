@@ -1,14 +1,20 @@
+use std::sync::Arc;
+
 use ipiis_api::common::Ipiis;
 use ipis::{
     async_trait::async_trait,
     core::{
         account::AccountRef,
         anyhow::{bail, Result},
-        value::{chrono::DateTime, hash::Hash},
+        sha2::{Digest, Sha256},
+        value::hash::Hash,
     },
     env::{infer, Infer},
-    log::warn,
     path::Path,
+    tokio::{
+        self,
+        io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
+    },
 };
 use ipsis_common::Ipsis;
 use s3::Bucket;
@@ -17,7 +23,7 @@ pub type IpsisClient = IpsisClientInner<::ipiis_api::client::IpiisClient>;
 
 pub struct IpsisClientInner<IpiisClient> {
     pub ipiis: IpiisClient,
-    storage: Bucket,
+    storage: Arc<Bucket>,
 }
 
 impl<IpiisClient> AsRef<::ipiis_api::client::IpiisClient> for IpsisClientInner<IpiisClient>
@@ -87,7 +93,9 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
                     None,
                 )?;
 
-                Bucket::new(&bucket_name, region, credentials)?.with_path_style()
+                Bucket::new(&bucket_name, region, credentials)?
+                    .with_path_style()
+                    .into()
             },
         })
     }
@@ -98,40 +106,92 @@ impl<IpiisClient> Ipsis for IpsisClientInner<IpiisClient>
 where
     IpiisClient: Ipiis + Send + Sync,
 {
-    async fn get_raw(&self, path: &Path) -> Result<Vec<u8>> {
+    type Reader = tokio::io::DuplexStream;
+
+    async fn get_raw(&self, path: &Path) -> Result<<Self as Ipsis>::Reader> {
         // get canonical path
-        let path = to_path_canonical(self.ipiis.account_me().account_ref(), path);
-
-        // external call
-        let (data, status_code) = self.storage.get_object(path).await?;
-
-        // validate response
-        let () = validate_http_status_code(status_code)?;
-
-        // pack data
-        Ok(data)
-    }
-
-    async fn put_raw(&self, data: Vec<u8>, expiration_date: Option<DateTime>) -> Result<Path> {
-        if expiration_date.is_some() {
-            warn!("Expiration date for s3 is not supported yet!");
-        }
-
-        // get canonical path
-        let path = Path {
-            value: Hash::with_bytes(&data),
-            len: data.len().try_into()?,
-        };
+        let path = *path;
         let path_canonical = to_path_canonical(self.ipiis.account_me().account_ref(), &path);
 
+        // create a channel
+        let (mut tx, rx) = tokio::io::duplex(CHUNK_SIZE);
+
         // external call
-        let (_, status_code) = self.storage.put_object(&path_canonical, &data).await?;
+        tokio::spawn({
+            let storage = self.storage.clone();
+            async move {
+                tx.write_u64(path.len).await?;
+                storage.get_object_stream(path_canonical, &mut tx).await
+            }
+        });
+
+        // pack data
+        Ok(rx)
+    }
+
+    async fn put_raw<R>(&self, path: &Path, mut data: R) -> Result<()>
+    where
+        R: AsyncRead + Send + Unpin + 'static,
+    {
+        // get canonical path
+        let path = *path;
+        let path_canonical = to_path_canonical(self.ipiis.account_me().account_ref(), &path);
+
+        // create a channel
+        let (mut tx, mut rx) = tokio::io::duplex(CHUNK_SIZE);
+
+        // begin digesting a hash
+        let handle_hash = tokio::spawn(async move {
+            let mut chunk = Vec::with_capacity(CHUNK_SIZE);
+            let mut hasher = Sha256::new();
+            let mut len: u64 = 0;
+
+            'pipe: loop {
+                let chunk_size = CHUNK_SIZE as u64;
+                let chunk_size = chunk_size.min(path.len - len);
+                let mut take = (&mut data).take(chunk_size);
+                take.read_to_end(&mut chunk).await?;
+
+                let chunk_len = chunk.len();
+                if chunk_len > 0 {
+                    len += chunk_size as u64;
+
+                    let ((), tx_result) =
+                        tokio::join!(async { hasher.update(&chunk) }, tx.write_all(&chunk));
+                    tx_result?;
+                }
+
+                if len >= path.len || chunk_len == 0 {
+                    break 'pipe Result::<_, ::ipis::core::anyhow::Error>::Ok(Path {
+                        value: Hash(hasher.finalize()),
+                        len,
+                    });
+                }
+            }
+        });
+
+        // external call
+        let status_code = self
+            .storage
+            .put_object_stream(&mut rx, &path_canonical)
+            .await?;
 
         // validate response
         let () = validate_http_status_code(status_code)?;
 
-        // pack data
-        Ok(path)
+        // poll hash
+        let path_from_data = handle_hash.await??;
+
+        // validate hash
+        if path == path_from_data {
+            Ok(())
+        } else {
+            // revert the request
+            self.delete(&path_from_data).await?;
+
+            // raise an error
+            bail!("failed to validate the path")
+        }
     }
 
     async fn contains(&self, path: &Path) -> Result<bool> {
@@ -178,3 +238,5 @@ fn validate_http_status_code(status_code: u16) -> Result<()> {
         bail!("HTTP response was not successful: \"{status_code}\"")
     }
 }
+
+const CHUNK_SIZE: usize = ::s3::bucket::CHUNK_SIZE;
