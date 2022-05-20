@@ -239,4 +239,4 @@ fn validate_http_status_code(status_code: u16) -> Result<()> {
     }
 }
 
-const CHUNK_SIZE: usize = ::s3::bucket::CHUNK_SIZE;
+const CHUNK_SIZE: usize = 524_288;
