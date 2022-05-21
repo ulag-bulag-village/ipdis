@@ -38,7 +38,6 @@ pub trait IpsisWeb: Ipsis {
             Ok(())
         } else {
             let downloaded = self.download_web(url).await?;
-            dbg!(downloaded.len);
 
             if &downloaded == path {
                 Ok(())
