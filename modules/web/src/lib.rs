@@ -65,7 +65,14 @@ pub trait IpsisWeb: Ipsis {
         let () = self.download_web_static(url, path).await?;
 
         // resolve the local file path
-        let local_path = ::std::env::temp_dir().join(path.value.to_string());
+        let hash = path.value.to_string();
+        let filename = match url.split(".").last() {
+            Some(ext) if ext.len() <= 16 => {
+                format!("{hash}.{ext}")
+            }
+            _ => hash,
+        };
+        let local_path = ::std::env::temp_dir().join(filename);
         if local_path.exists() && local_path.metadata()?.len() == path.len {
             return Ok(local_path);
         }
