@@ -123,9 +123,7 @@ where
             let bucket = self.bucket.clone();
             async move {
                 tx.write_u64(path.len).await?;
-                bucket
-                    .get_object_stream_parallel(path_canonical, &mut tx)
-                    .await
+                bucket.get_object_stream(path_canonical, &mut tx).await
             }
         });
 

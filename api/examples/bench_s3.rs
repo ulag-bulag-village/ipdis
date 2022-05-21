@@ -15,7 +15,7 @@ use ipsis_api::{
 #[tokio::main]
 async fn main() -> Result<()> {
     // define the hyperparameters
-    const COUNT: u32 = 30;
+    const COUNT: u32 = 100;
 
     // deploy a server
     let server = IpsisServer::try_infer().await?;
@@ -49,13 +49,11 @@ async fn main() -> Result<()> {
         // download a file via `s3`
         let time_total = std::time::Instant::now();
         for _ in 0..COUNT {
-            let time = std::time::Instant::now();
             let () = {
                 buf.clear();
                 bucket.get_object_stream(&path_canonical, &mut buf).await?;
             };
             assert_eq!(buf.len() as u64, path.len);
-            println!("Elapsed time for download via `s3`: {:?}", time.elapsed());
         }
         assert_eq!(Hash::with_bytes(&buf), path.value);
         println!(
@@ -66,7 +64,6 @@ async fn main() -> Result<()> {
         // download a file via `s3 (parallel)`
         let time_total = std::time::Instant::now();
         for _ in 0..COUNT {
-            let time = std::time::Instant::now();
             let () = {
                 buf.clear();
                 bucket
@@ -74,10 +71,6 @@ async fn main() -> Result<()> {
                     .await?;
             };
             assert_eq!(buf.len() as u64, path.len);
-            println!(
-                "Elapsed time for download via `s3 (parallel)`: {:?}",
-                time.elapsed()
-            );
         }
         assert_eq!(Hash::with_bytes(&buf), path.value);
         println!(
@@ -88,17 +81,12 @@ async fn main() -> Result<()> {
         // download a file via `Ipsis (local)`
         let time_total = std::time::Instant::now();
         for _ in 0..COUNT {
-            let time = std::time::Instant::now();
             let () = {
                 buf.clear();
                 let mut recv = client_local.get_raw(&path).await?;
                 AsyncReadExt::read_to_end(&mut recv, &mut buf).await?;
             };
             assert_eq!((buf.len() - ::core::mem::size_of::<u64>()) as u64, path.len);
-            println!(
-                "Elapsed time for download via `Ipsis (local)`: {:?}",
-                time.elapsed(),
-            );
         }
         assert_eq!(Hash::with_bytes(&buf[8..]), path.value);
         println!(
@@ -109,17 +97,12 @@ async fn main() -> Result<()> {
         // download a file via `Ipsis (remote)`
         let time_total = std::time::Instant::now();
         for _ in 0..COUNT {
-            let time = std::time::Instant::now();
             let () = {
                 buf.clear();
                 let mut recv = client_remote.get_raw(&path).await?;
                 AsyncReadExt::read_to_end(&mut recv, &mut buf).await?;
             };
             assert_eq!((buf.len() - ::core::mem::size_of::<u64>()) as u64, path.len);
-            println!(
-                "Elapsed time for download via `Ipsis (remote)`: {:?}",
-                time.elapsed(),
-            );
         }
         assert_eq!(Hash::with_bytes(&buf[8..]), path.value);
         println!(
