@@ -10,7 +10,7 @@ use ipis::{
     tokio::{self, io::AsyncReadExt},
 };
 use ipsis_common::Ipsis;
-use reqwest::Client;
+use reqwest::{header::USER_AGENT, Client};
 
 #[async_trait]
 pub trait IpsisWeb: Ipsis {
@@ -19,7 +19,14 @@ pub trait IpsisWeb: Ipsis {
         let session = Client::builder().build()?;
 
         // try to acquire data
-        let response = session.get(url).send().await?;
+        let response = session
+            .get(url)
+            .header(
+                USER_AGENT,
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:99.0) Gecko/20100101 Firefox/99.0",
+            )
+            .send()
+            .await?;
 
         // digest a hash
         let data = response.bytes().await?;

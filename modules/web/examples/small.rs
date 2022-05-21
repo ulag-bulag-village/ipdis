@@ -13,10 +13,10 @@ async fn main() -> Result<()> {
     let client = IpsisClient::try_infer().await?;
 
     // we know the file's static path
-    let url = "https://huggingface.co/cross-encoder/nli-distilroberta-base/raw/main/vocab.json";
+    let url = "https://upload.wikimedia.org/wikipedia/commons/7/7a/Huskiesatrest.jpg";
     let path = Path {
-        value: "TBNdeMd2zDstNeqDheuzvkKBDdsPxwV8uZrCfeg1mDt".parse()?,
-        len: 898_822,
+        value: "67JwwcZ5HHMP26GoVMtSh1SVS3u3wbr6GB5snKHPLfGP".parse()?,
+        len: 4_854_901,
     };
 
     // download from web
