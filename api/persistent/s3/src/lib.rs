@@ -23,7 +23,7 @@ pub type IpsisClient = IpsisClientInner<::ipiis_api::client::IpiisClient>;
 
 pub struct IpsisClientInner<IpiisClient> {
     pub ipiis: IpiisClient,
-    storage: Arc<Bucket>,
+    pub storage: Arc<Bucket>,
 }
 
 impl<IpiisClient> AsRef<::ipiis_api::client::IpiisClient> for IpsisClientInner<IpiisClient>
@@ -114,7 +114,7 @@ where
         let path_canonical = to_path_canonical(self.ipiis.account_me().account_ref(), &path);
 
         // create a channel
-        let (mut tx, rx) = tokio::io::duplex(CHUNK_SIZE);
+        let (mut tx, rx) = tokio::io::duplex(CHUNK_SIZE.min(path.len.try_into()?));
 
         // external call
         tokio::spawn({
@@ -142,11 +142,15 @@ where
 
         // begin digesting a hash
         let handle_hash = tokio::spawn(async move {
-            let mut chunk = Vec::with_capacity(CHUNK_SIZE);
+            let mut chunk = Vec::with_capacity(CHUNK_SIZE.min(path.len.try_into()?));
             let mut hasher = Sha256::new();
             let mut len: u64 = 0;
 
             'pipe: loop {
+                // clean up buffer
+                chunk.clear();
+
+                // read to buffer
                 let chunk_size = CHUNK_SIZE as u64;
                 let chunk_size = chunk_size.min(path.len - len);
                 let mut take = (&mut data).take(chunk_size);
@@ -173,7 +177,7 @@ where
         // external call
         let status_code = self
             .storage
-            .put_object_stream(&mut rx, &path_canonical)
+            .put_object_stream_parallel(&mut rx, &path_canonical)
             .await?;
 
         // validate response

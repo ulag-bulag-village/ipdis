@@ -21,4 +21,4 @@ ipiis-api = { git = "https://github.com/ulagbulag-village/ipiis" }
 ipsis-common = { path = "../../../common" }
 
 http = "0.2"
-rust-s3 = "0.31"
+rust-s3 = { git = "https://github.com/ulagbulag-village/rust-s3" }
