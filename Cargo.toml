@@ -5,6 +5,7 @@ members = [
     "api/persistent/s3",
     "common",
     "modules/gdown",
+    "modules/web",
     "pallet",
     "runtime",
 ]
