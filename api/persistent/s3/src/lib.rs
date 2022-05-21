@@ -23,7 +23,7 @@ pub type IpsisClient = IpsisClientInner<::ipiis_api::client::IpiisClient>;
 
 pub struct IpsisClientInner<IpiisClient> {
     pub ipiis: IpiisClient,
-    pub storage: Arc<Bucket>,
+    bucket: Arc<Bucket>,
 }
 
 impl<IpiisClient> AsRef<::ipiis_api::client::IpiisClient> for IpsisClientInner<IpiisClient>
@@ -73,31 +73,33 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
     pub fn with_ipiis_client(ipiis: IpiisClient) -> Result<Self> {
         Ok(Self {
             ipiis,
-            storage: {
-                let bucket_name: String = infer("ipsis_client_s3_bucket_name")?;
-                let region_name = infer("ipsis_client_s3_region_name")?;
-                let region = match infer::<_, String>("ipsis_client_s3_region") {
-                    Ok(endpoint) => s3::Region::Custom {
-                        region: region_name,
-                        endpoint: match endpoint.find("://") {
-                            Some(_) => endpoint,
-                            None => format!("http://{}", endpoint),
-                        },
-                    },
-                    Err(_) => region_name.parse()?,
-                };
-                let credentials = s3::creds::Credentials::from_env_specific(
-                    Some("ipsis_client_s3_access_key"),
-                    Some("ipsis_client_s3_secret_key"),
-                    None,
-                    None,
-                )?;
-
-                Bucket::new(&bucket_name, region, credentials)?
-                    .with_path_style()
-                    .into()
-            },
+            bucket: Self::new_bucket()?,
         })
+    }
+
+    pub fn new_bucket() -> Result<Arc<Bucket>> {
+        let bucket_name: String = infer("ipsis_client_s3_bucket_name")?;
+        let region_name = infer("ipsis_client_s3_region_name")?;
+        let region = match infer::<_, String>("ipsis_client_s3_region") {
+            Ok(endpoint) => s3::Region::Custom {
+                region: region_name,
+                endpoint: match endpoint.find("://") {
+                    Some(_) => endpoint,
+                    None => format!("http://{}", endpoint),
+                },
+            },
+            Err(_) => region_name.parse()?,
+        };
+        let credentials = s3::creds::Credentials::from_env_specific(
+            Some("ipsis_client_s3_access_key"),
+            Some("ipsis_client_s3_secret_key"),
+            None,
+            None,
+        )?;
+
+        Ok(Bucket::new(&bucket_name, region, credentials)?
+            .with_path_style()
+            .into())
     }
 }
 
@@ -118,10 +120,12 @@ where
 
         // external call
         tokio::spawn({
-            let storage = self.storage.clone();
+            let bucket = self.bucket.clone();
             async move {
                 tx.write_u64(path.len).await?;
-                storage.get_object_stream(path_canonical, &mut tx).await
+                bucket
+                    .get_object_stream_parallel(path_canonical, &mut tx)
+                    .await
             }
         });
 
@@ -176,7 +180,7 @@ where
 
         // external call
         let status_code = self
-            .storage
+            .bucket
             .put_object_stream_parallel(&mut rx, &path_canonical)
             .await?;
 
@@ -203,7 +207,7 @@ where
         let path = to_path_canonical(self.ipiis.account_me().account_ref(), path);
 
         // external call
-        let (_, status_code) = self.storage.head_object(path).await?;
+        let (_, status_code) = self.bucket.head_object(path).await?;
 
         // validate response
         if status_code != 404 {
@@ -219,7 +223,7 @@ where
         let path = to_path_canonical(self.ipiis.account_me().account_ref(), path);
 
         // external call
-        let (_, status_code) = self.storage.delete_object(path).await?;
+        let (_, status_code) = self.bucket.delete_object(path).await?;
 
         // validate response
         let () = validate_http_status_code(status_code)?;
