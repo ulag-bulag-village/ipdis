@@ -66,7 +66,7 @@ pub trait IpsisWeb: Ipsis {
 
         // resolve the local file path
         let hash = path.value.to_string();
-        let filename = match url.split(".").last() {
+        let filename = match url.split('.').last() {
             Some(ext) if ext.len() <= 16 => {
                 format!("{hash}.{ext}")
             }
