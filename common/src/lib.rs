@@ -54,9 +54,9 @@ pub trait Ipsis {
 
     async fn put<Req>(&self, data: &Req) -> Result<Path>
     where
-        Req: Serialize<Serializer> + Send + Sync,
+        Req: Serialize<Serializer> + IsSigned + Send + Sync,
     {
-        let data = ::rkyv::to_bytes(data)?;
+        let data = data.to_bytes()?;
         let path = Path {
             value: Hash::with_bytes(&data),
             len: data.len().try_into()?,
