@@ -17,13 +17,12 @@ use ipis::{
     },
 };
 use ipsis_common::Ipsis;
-use tempdir::TempDir;
 
 pub type IpsisClient = IpsisClientInner<::ipiis_api::client::IpiisClient>;
 
 pub struct IpsisClientInner<IpiisClient> {
     pub ipiis: IpiisClient,
-    dir: Arc<TempDir>,
+    dir: Arc<PathBuf>,
 }
 
 impl<IpiisClient> AsRef<::ipiis_api::client::IpiisClient> for IpsisClientInner<IpiisClient>
@@ -73,7 +72,7 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
     pub fn with_ipiis_client(ipiis: IpiisClient) -> Result<Self> {
         Ok(Self {
             ipiis,
-            dir: Arc::new(TempDir::new("ipsis-tempdir")?),
+            dir: Arc::new("/tmp/ipsis-tempdir/".parse()?),
         })
     }
 }
@@ -192,7 +191,7 @@ where
 
 impl<IpiisClient> IpsisClientInner<IpiisClient> {
     fn to_path_canonical(&self, account: AccountRef, path: &Path) -> PathBuf {
-        let mut buf = self.dir.path().to_path_buf();
+        let mut buf = (*self.dir).clone();
         buf.push(account.to_string());
         buf.push(path.value.to_string());
         buf

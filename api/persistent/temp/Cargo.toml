@@ -19,5 +19,3 @@ ipis = { git = "https://github.com/ulagbulag-village/ipis", features = [
 ] }
 ipiis-api = { git = "https://github.com/ulagbulag-village/ipiis" }
 ipsis-common = { path = "../../../common" }
-
-tempdir = "0.3"
