@@ -121,7 +121,7 @@ impl IpsisServer {
         }
 
         // handle data
-        let () = client.put_raw(&path, recv).await?;
+        client.put_raw(&path, recv).await?;
 
         // sign data
         let server: &IpiisServer = client.as_ref();
@@ -170,7 +170,7 @@ impl IpsisServer {
         let path = sign_as_guarantee.data.data;
 
         // handle data
-        let () = client.delete(&path).await?;
+        client.delete(&path).await?;
 
         // sign data
         let server: &IpiisServer = client.as_ref();

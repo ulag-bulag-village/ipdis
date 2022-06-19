@@ -13,7 +13,7 @@ use ipsis_api::common::Ipsis;
 use ipsis_common::KIND;
 use rkyv::{Archive, Deserialize, Serialize};
 
-#[derive(Class, Clone, Debug, PartialEq, Archive, Serialize, Deserialize)]
+#[derive(Class, Clone, Debug, PartialEq, Eq, Archive, Serialize, Deserialize)]
 #[archive(compare(PartialEq))]
 #[archive_attr(derive(CheckBytes, Debug, PartialEq))]
 pub struct MyData {
@@ -64,8 +64,8 @@ async fn main() -> Result<()> {
     assert_eq!(&data, &data_from_storage);
 
     // DELETE
-    let () = client.delete(&path_create).await?;
-    let () = client.delete(&path_update_changed).await?;
+    client.delete(&path_create).await?;
+    client.delete(&path_update_changed).await?;
 
     // data is not exist after DELETE
     match client.get::<MyData>(&path_update_changed).await {
