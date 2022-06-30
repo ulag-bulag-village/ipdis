@@ -62,7 +62,7 @@ pub trait IpsisWeb: Ipsis {
         path: &Path,
     ) -> Result<::std::path::PathBuf> {
         // download a file
-        let () = self.download_web_static(url, path).await?;
+        self.download_web_static(url, path).await?;
 
         // resolve the local file path
         let hash = path.value.to_string();

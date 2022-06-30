@@ -113,7 +113,7 @@ where
         let target = self.get_account_primary(KIND.as_ref()).await?;
 
         // external call
-        let () = external_call!(
+        external_call!(
             client: self,
             target: KIND.as_ref() => &target,
             request: crate::io => Put,
@@ -154,7 +154,7 @@ where
         let target = self.get_account_primary(KIND.as_ref()).await?;
 
         // external call
-        let () = external_call!(
+        external_call!(
             client: self,
             target: KIND.as_ref() => &target,
             request: crate::io => Delete,

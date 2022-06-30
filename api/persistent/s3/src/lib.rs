@@ -183,7 +183,7 @@ where
             .await?;
 
         // validate response
-        let () = validate_http_status_code(status_code)?;
+        validate_http_status_code(status_code)?;
 
         // poll hash
         let path_from_data = handle_hash.await??;
@@ -209,7 +209,7 @@ where
 
         // validate response
         if status_code != 404 {
-            let () = validate_http_status_code(status_code)?;
+            validate_http_status_code(status_code)?;
         }
 
         // pack data
@@ -224,7 +224,7 @@ where
         let (_, status_code) = self.bucket.delete_object(path).await?;
 
         // validate response
-        let () = validate_http_status_code(status_code)?;
+        validate_http_status_code(status_code)?;
 
         // pack data
         Ok(())
