@@ -7,9 +7,9 @@ use ipis::{
         value::hash::Hash,
     },
     path::Path,
-    tokio::{self, io::AsyncReadExt},
 };
 use ipsis_common::Ipsis;
+use ipsis_modules_local::IpsisLocal;
 use reqwest::{header::USER_AGENT, Client};
 
 #[async_trait]
@@ -65,30 +65,16 @@ pub trait IpsisWeb: Ipsis {
         self.download_web_static(url, path).await?;
 
         // resolve the local file path
-        let hash = path.value.to_string();
-        let filename = match url.split('.').last() {
-            Some(ext) if ext.len() <= 16 => {
+        let filename = url
+            .split('.')
+            .last()
+            .filter(|ext| ext.len() <= 16)
+            .map(|ext| {
+                let hash = path.value.to_string();
                 format!("{hash}.{ext}")
-            }
-            _ => hash,
-        };
-        let local_path = ::std::env::temp_dir().join(filename);
-        if local_path.exists() && local_path.metadata()?.len() == path.len {
-            return Ok(local_path);
-        }
-
-        // get data
-        let mut file = tokio::fs::File::create(&local_path).await?;
-        let mut recv = self.get_raw(path).await?;
-
-        let len = recv.read_u64().await?;
-        if len != path.len {
-            bail!("failed to validate the length");
-        }
-
-        tokio::io::copy(&mut recv, &mut file).await?;
-        Ok(local_path)
+            });
+        self.download_on_local(path, filename).await
     }
 }
 
-impl<T: Ipsis> IpsisWeb for T {}
+impl<T: Ipsis + ?Sized> IpsisWeb for T {}

@@ -74,4 +74,4 @@ pub trait IpsisGdown: Ipsis {
     }
 }
 
-impl<T: Ipsis> IpsisGdown for T {}
+impl<T: Ipsis + ?Sized> IpsisGdown for T {}
