@@ -9,7 +9,7 @@ use ipis::{
         sha2::{Digest, Sha256},
         value::hash::Hash,
     },
-    env::Infer,
+    env::{infer, Infer},
     path::Path,
     tokio::{
         self,
@@ -72,8 +72,18 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
     pub fn with_ipiis_client(ipiis: IpiisClient) -> Result<Self> {
         Ok(Self {
             ipiis,
-            dir: Arc::new("/tmp/ipsis-tempdir/".parse()?),
+            dir: Self::new_dir()?,
         })
+    }
+
+    pub fn new_dir() -> Result<Arc<PathBuf>> {
+        infer("ipsis_client_s3_local_dir")
+            .or_else(|e| {
+                let mut dir = ::dirs::home_dir().ok_or(e)?;
+                dir.push(".ipsis");
+                Ok(dir)
+            })
+            .map(Into::into)
     }
 }
 

@@ -1,5 +1,5 @@
 [package]
-name = "ipsis-api-persistent-temp"
+name = "ipsis-api-persistent-local"
 version = "0.1.0"
 edition = "2021"
 
@@ -19,3 +19,5 @@ ipis = { git = "https://github.com/ulagbulag-village/ipis", features = [
 ] }
 ipiis-api = { git = "https://github.com/ulagbulag-village/ipiis" }
 ipsis-common = { path = "../../../common" }
+
+dirs = "4.0"
