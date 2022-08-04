@@ -8,6 +8,7 @@ use ipis::{
     core::{
         account::{GuaranteeSigned, GuarantorSigned, Verifier},
         anyhow::Result,
+        data::Data,
         signature::SignatureSerializer,
         signed::{IsSigned, Serializer},
         value::hash::Hash,
@@ -91,16 +92,17 @@ where
             client: self,
             target: KIND.as_ref() => &target,
             request: crate::io => Get,
-            sign: self.sign(target, *path)?,
+            sign: self.sign_owned(target, *path)?,
             inputs: { },
             outputs: send,
         );
 
         // recv sign
-        let sign: GuarantorSigned<Path> = DynStream::recv(&mut recv).await?.into_owned().await?;
+        let sign: Data<GuarantorSigned, Path> =
+            DynStream::recv(&mut recv).await?.into_owned().await?;
 
         // verify sign
-        let _ = sign.verify(Some(target))?;
+        let _ = sign.verify(Some(&target))?;
 
         Ok(recv)
     }
@@ -117,7 +119,7 @@ where
             client: self,
             target: KIND.as_ref() => &target,
             request: crate::io => Put,
-            sign: self.sign(target, *path)?,
+            sign: self.sign_owned(target, *path)?,
             inputs: {
                 data: DynStream::Stream {
                     len: path.len,
@@ -140,7 +142,7 @@ where
             client: self,
             target: KIND.as_ref() => &target,
             request: crate::io => Contains,
-            sign: self.sign(target, *path)?,
+            sign: self.sign_owned(target, *path)?,
             inputs: { },
             outputs: { contains, },
         );
@@ -158,7 +160,7 @@ where
             client: self,
             target: KIND.as_ref() => &target,
             request: crate::io => Delete,
-            sign: self.sign(target, *path)?,
+            sign: self.sign_owned(target, *path)?,
             inputs: { },
             outputs: { },
         );
@@ -171,36 +173,36 @@ where
 define_io! {
     Get {
         inputs: { },
-        input_sign: GuaranteeSigned<Path>,
+        input_sign: Data<GuaranteeSigned, Path>,
         outputs: {
             data: Vec<u8>,
         },
-        output_sign: GuarantorSigned<Path>,
+        output_sign: Data<GuarantorSigned, Path>,
         generics: { },
     },
     Put {
         inputs: {
             data: Vec<u8>,
         },
-        input_sign: GuaranteeSigned<Path>,
+        input_sign: Data<GuaranteeSigned, Path>,
         outputs: { },
-        output_sign: GuarantorSigned<Path>,
+        output_sign: Data<GuarantorSigned, Path>,
         generics: { },
     },
     Contains {
         inputs: { },
-        input_sign: GuaranteeSigned<Path>,
+        input_sign: Data<GuaranteeSigned, Path>,
         outputs: {
             contains: bool,
         },
-        output_sign: GuarantorSigned<Path>,
+        output_sign: Data<GuarantorSigned, Path>,
         generics: { },
     },
     Delete {
         inputs: { },
-        input_sign: GuaranteeSigned<Path>,
+        input_sign: Data<GuaranteeSigned, Path>,
         outputs: { },
-        output_sign: GuarantorSigned<Path>,
+        output_sign: Data<GuarantorSigned, Path>,
         generics: { },
     },
 }

@@ -10,6 +10,7 @@ use ipis::{
     core::{
         account::GuaranteeSigned,
         anyhow::{bail, Result},
+        data::Data,
     },
     env::Infer,
     path::Path,
@@ -74,7 +75,7 @@ impl IpsisServer {
         let sign_as_guarantee = req.__sign.into_owned().await?;
 
         // unpack data
-        let path = sign_as_guarantee.data.data;
+        let path = sign_as_guarantee.data;
 
         // handle data
         let mut data = client.get_raw(&path).await?;
@@ -108,11 +109,11 @@ impl IpsisServer {
         R: AsyncRead + Send + Unpin + 'static,
     {
         // recv sign
-        let sign_as_guarantee: GuaranteeSigned<Path> =
+        let sign_as_guarantee: Data<GuaranteeSigned, Path> =
             DynStream::recv(&mut recv).await?.into_owned().await?;
 
         // unpack data
-        let path = sign_as_guarantee.data.data;
+        let path = sign_as_guarantee.data;
 
         // validate the length
         let len = recv.read_u64().await?;
@@ -142,7 +143,7 @@ impl IpsisServer {
         let sign_as_guarantee = req.__sign.into_owned().await?;
 
         // unpack data
-        let path = sign_as_guarantee.data.data;
+        let path = sign_as_guarantee.data;
 
         // handle data
         let contains = client.contains(&path).await?;
@@ -167,7 +168,7 @@ impl IpsisServer {
         let sign_as_guarantee = req.__sign.into_owned().await?;
 
         // unpack data
-        let path = sign_as_guarantee.data.data;
+        let path = sign_as_guarantee.data;
 
         // handle data
         client.delete(&path).await?;
