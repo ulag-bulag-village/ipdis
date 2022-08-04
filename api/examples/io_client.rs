@@ -28,12 +28,12 @@ async fn main() -> Result<()> {
     // create a client
     let client = IpiisClient::infer().await;
     client
-        .set_account_primary(KIND.as_ref(), &client.account_me().account_ref())
+        .set_account_primary(KIND.as_ref(), client.account_ref())
         .await?;
     client
         .set_address(
             KIND.as_ref(),
-            &client.account_me().account_ref(),
+            client.account_ref(),
             &"127.0.0.1:5001".parse()?,
         )
         .await?;

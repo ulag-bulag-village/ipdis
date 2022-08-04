@@ -31,7 +31,7 @@ async fn main() -> Result<()> {
     let server = IpsisServer::genesis(5001).await?;
     let server_account = {
         let server: &IpiisServer = server.as_ref();
-        server.account_me().account_ref()
+        *server.account_ref()
     };
     tokio::spawn(async move { server.run().await });
 

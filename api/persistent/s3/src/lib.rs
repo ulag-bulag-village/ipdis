@@ -113,7 +113,7 @@ where
     async fn get_raw(&self, path: &Path) -> Result<<Self as Ipsis>::Reader> {
         // get canonical path
         let path = *path;
-        let path_canonical = to_path_canonical(self.ipiis.account_me().account_ref(), &path);
+        let path_canonical = to_path_canonical(self.ipiis.account_ref(), &path);
 
         // create a channel
         let (mut tx, rx) = tokio::io::duplex(CHUNK_SIZE.min(path.len.try_into()?));
@@ -137,7 +137,7 @@ where
     {
         // get canonical path
         let path = *path;
-        let path_canonical = to_path_canonical(self.ipiis.account_me().account_ref(), &path);
+        let path_canonical = to_path_canonical(self.ipiis.account_ref(), &path);
 
         // create a channel
         let (mut tx, mut rx) = tokio::io::duplex(CHUNK_SIZE);
@@ -202,7 +202,7 @@ where
 
     async fn contains(&self, path: &Path) -> Result<bool> {
         // get canonical path
-        let path = to_path_canonical(self.ipiis.account_me().account_ref(), path);
+        let path = to_path_canonical(self.ipiis.account_ref(), path);
 
         // external call
         let (_, status_code) = self.bucket.head_object(path).await?;
@@ -218,7 +218,7 @@ where
 
     async fn delete(&self, path: &Path) -> Result<()> {
         // get canonical path
-        let path = to_path_canonical(self.ipiis.account_me().account_ref(), path);
+        let path = to_path_canonical(self.ipiis.account_ref(), path);
 
         // external call
         let (_, status_code) = self.bucket.delete_object(path).await?;
@@ -231,7 +231,7 @@ where
     }
 }
 
-fn to_path_canonical(account: AccountRef, path: &Path) -> String {
+fn to_path_canonical(account: &AccountRef, path: &Path) -> String {
     format!("{}/{}", account.to_string(), path.value.to_string())
 }
 

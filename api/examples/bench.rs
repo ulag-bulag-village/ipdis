@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
     let server = IpsisServer::try_infer().await?;
     let server_account = {
         let server: &IpiisServer = server.as_ref();
-        server.account_me().account_ref()
+        *server.account_ref()
     };
     tokio::spawn(async move { server.run().await });
 
@@ -50,7 +50,7 @@ async fn main() -> Result<()> {
 
     // get canonical path
     #[cfg(feature = "s3")]
-    let path_canonical = to_path_canonical(client_local.ipiis.account_me().account_ref(), &path);
+    let path_canonical = to_path_canonical(client_local.ipiis.account_ref(), &path);
 
     {
         let mut buf = Vec::with_capacity(path.len.try_into()?);
@@ -130,6 +130,6 @@ async fn main() -> Result<()> {
 }
 
 #[cfg(feature = "s3")]
-fn to_path_canonical(account: ::ipis::core::account::AccountRef, path: &Path) -> String {
+fn to_path_canonical(account: &::ipis::core::account::AccountRef, path: &Path) -> String {
     format!("{}/{}", account.to_string(), path.value.to_string())
 }

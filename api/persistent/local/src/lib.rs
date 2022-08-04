@@ -97,7 +97,7 @@ where
     async fn get_raw(&self, path: &Path) -> Result<<Self as Ipsis>::Reader> {
         // get canonical path
         let path = *path;
-        let path_canonical = self.to_path_canonical(self.ipiis.account_me().account_ref(), &path);
+        let path_canonical = self.to_path_canonical(self.ipiis.account_ref(), &path);
 
         // create a channel
         let (mut tx, rx) = tokio::io::duplex(CHUNK_SIZE.min(path.len.try_into()?));
@@ -121,7 +121,7 @@ where
     {
         // get canonical path
         let path = *path;
-        let path_canonical = self.to_path_canonical(self.ipiis.account_me().account_ref(), &path);
+        let path_canonical = self.to_path_canonical(self.ipiis.account_ref(), &path);
 
         // create a directory
         tokio::fs::create_dir_all(path_canonical.ancestors().nth(1).unwrap()).await?;
@@ -184,7 +184,7 @@ where
 
     async fn contains(&self, path: &Path) -> Result<bool> {
         // get canonical path
-        let path = self.to_path_canonical(self.ipiis.account_me().account_ref(), path);
+        let path = self.to_path_canonical(self.ipiis.account_ref(), path);
 
         // external call
         Ok(tokio::fs::metadata(path).await.is_ok())
@@ -192,7 +192,7 @@ where
 
     async fn delete(&self, path: &Path) -> Result<()> {
         // get canonical path
-        let path = self.to_path_canonical(self.ipiis.account_me().account_ref(), path);
+        let path = self.to_path_canonical(self.ipiis.account_ref(), path);
 
         // external call
         tokio::fs::remove_file(path).await.map_err(Into::into)
@@ -200,7 +200,7 @@ where
 }
 
 impl<IpiisClient> IpsisClientInner<IpiisClient> {
-    fn to_path_canonical(&self, account: AccountRef, path: &Path) -> PathBuf {
+    fn to_path_canonical(&self, account: &AccountRef, path: &Path) -> PathBuf {
         let mut buf = (*self.dir).clone();
         buf.push(account.to_string());
         buf.push(path.value.to_string());
