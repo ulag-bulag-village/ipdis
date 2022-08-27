@@ -6,8 +6,7 @@ use ipis::{
     core::{
         account::AccountRef,
         anyhow::{bail, Result},
-        sha2::{Digest, Sha256},
-        value::hash::Hash,
+        value::hash::Hasher,
     },
     env::{infer, Infer},
     path::Path,
@@ -145,8 +144,7 @@ where
         // begin digesting a hash
         let handle_hash = tokio::spawn(async move {
             let mut chunk = Vec::with_capacity(CHUNK_SIZE.min(path.len.try_into()?));
-            let mut hasher = Sha256::new();
-            let mut len: u64 = 0;
+            let mut hasher = Hasher::default();
 
             'pipe: loop {
                 // clean up buffer
@@ -154,22 +152,21 @@ where
 
                 // read to buffer
                 let chunk_size = CHUNK_SIZE as u64;
-                let chunk_size = chunk_size.min(path.len - len);
+                let chunk_size = chunk_size.min(path.len - hasher.len() as u64);
                 let mut take = (&mut data).take(chunk_size);
                 take.read_to_end(&mut chunk).await?;
 
                 let chunk_len = chunk.len();
                 if chunk_len > 0 {
-                    len += chunk_size as u64;
-
                     let ((), tx_result) =
                         tokio::join!(async { hasher.update(&chunk) }, tx.write_all(&chunk));
                     tx_result?;
                 }
 
+                let len = hasher.len() as u64;
                 if len >= path.len || chunk_len == 0 {
                     break 'pipe Result::<_, ::ipis::core::anyhow::Error>::Ok(Path {
-                        value: Hash(hasher.finalize()),
+                        value: hasher.finalize(),
                         len,
                     });
                 }

@@ -15,7 +15,7 @@ async fn main() -> Result<()> {
     // we know the file's static path
     let url = "https://upload.wikimedia.org/wikipedia/commons/7/7a/Huskiesatrest.jpg";
     let path = Path {
-        value: "67JwwcZ5HHMP26GoVMtSh1SVS3u3wbr6GB5snKHPLfGP".parse()?,
+        value: "bafybeicnerxc4wqjxicrw3lbd77ucxlgpctp6c3wopkpokbtiirgj2uznm".parse()?,
         len: 4_854_901,
     };
 

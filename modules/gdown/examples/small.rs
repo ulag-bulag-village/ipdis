@@ -10,7 +10,7 @@ async fn main() -> Result<()> {
     // we know the file's static path
     let id = "1l-OwuECuYRgSk3JIOz0xgFqiqomKi1ct";
     let path = Path {
-        value: "Gx1fwyQphUwVU5E2HRbx7H6t7QVZ8XsMzrFz6TnyxaC1".parse()?,
+        value: "bafkreihm64a7oj6z4llxysvetldpxpgjs4tyvsqbbpo65olbyegpktkdli".parse()?,
         len: 13,
     };
 

@@ -1,18 +1,18 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
+use async_compat::{Compat, CompatExt};
+use http::uri::Scheme;
+use ipfs_api::{IpfsApi, IpfsClient, TryFromUri};
 use ipiis_api::common::Ipiis;
 use ipis::{
     async_trait::async_trait,
-    core::{
-        account::AccountRef,
-        anyhow::{bail, Result},
-        value::hash::Hasher,
-    },
+    core::anyhow::{bail, Error, Result},
     env::{infer, Infer},
+    futures::TryStreamExt,
     path::Path,
     tokio::{
         self,
-        io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
+        io::{AsyncRead, AsyncWriteExt, DuplexStream},
     },
 };
 use ipsis_common::Ipsis;
@@ -21,7 +21,7 @@ pub type IpsisClient = IpsisClientInner<::ipiis_api::client::IpiisClient>;
 
 pub struct IpsisClientInner<IpiisClient> {
     pub ipiis: IpiisClient,
-    dir: Arc<PathBuf>,
+    ipfs: Arc<IpfsClient>,
 }
 
 impl<IpiisClient> AsRef<::ipiis_api::client::IpiisClient> for IpsisClientInner<IpiisClient>
@@ -71,18 +71,17 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
     pub fn with_ipiis_client(ipiis: IpiisClient) -> Result<Self> {
         Ok(Self {
             ipiis,
-            dir: Self::new_dir()?,
+            ipfs: Self::new_ipfs_entrypoint()?,
         })
     }
 
-    pub fn new_dir() -> Result<Arc<PathBuf>> {
-        infer("ipsis_client_s3_local_dir")
-            .or_else(|e| {
-                let mut dir = ::dirs::home_dir().ok_or(e)?;
-                dir.push(".ipsis");
-                Ok(dir)
-            })
+    pub fn new_ipfs_entrypoint() -> Result<Arc<IpfsClient>> {
+        let host: String = infer("ipsis_client_ipfs_host").unwrap_or_else(|_| "localhost".into());
+        let port = infer("ipsis_client_ipfs_port").unwrap_or(5001);
+
+        IpfsClient::from_host_and_port(Scheme::HTTP, &host, port)
             .map(Into::into)
+            .map_err(Into::into)
     }
 }
 
@@ -96,17 +95,51 @@ where
     async fn get_raw(&self, path: &Path) -> Result<<Self as Ipsis>::Reader> {
         // get canonical path
         let path = *path;
-        let path_canonical = self.to_path_canonical(self.ipiis.account_ref(), &path);
 
         // create a channel
         let (mut tx, rx) = tokio::io::duplex(CHUNK_SIZE.min(path.len.try_into()?));
 
         // external call
         tokio::spawn({
-            let mut file = tokio::fs::File::open(path_canonical).await?;
+            let ipfs = self.ipfs.clone();
             async move {
                 tx.write_u64(path.len).await?;
-                tokio::io::copy(&mut file, &mut tx).await
+
+                let mut stream = ipfs.get(&path.value.to_string());
+                let mut has_header = true;
+                let mut len = 0;
+                loop {
+                    match stream.try_next().await {
+                        Ok(Some(bytes)) => {
+                            let mut bytes = if has_header {
+                                has_header = false;
+
+                                const HEADER_SIZE: usize = 512;
+                                &bytes[HEADER_SIZE..]
+                            } else {
+                                &bytes
+                            };
+
+                            let num_bytes = bytes.len() as u64;
+                            len += num_bytes;
+
+                            if len > path.len {
+                                let nullbytes = len - path.len;
+                                bytes = &bytes[..(num_bytes - nullbytes) as usize];
+                                len -= nullbytes;
+                            }
+                            tx.write_all_buf(&mut bytes).await?;
+
+                            if len == path.len {
+                                break Ok(());
+                            }
+                        }
+                        Ok(None) => {
+                            break Ok(());
+                        }
+                        Err(e) => break Err(Error::from(e)),
+                    }
+                }
             }
         });
 
@@ -120,52 +153,27 @@ where
     {
         // get canonical path
         let path = *path;
-        let path_canonical = self.to_path_canonical(self.ipiis.account_ref(), &path);
-
-        // create a directory
-        tokio::fs::create_dir_all(path_canonical.ancestors().nth(1).unwrap()).await?;
 
         // create a channel
         let (mut tx, mut rx) = tokio::io::duplex(CHUNK_SIZE);
 
-        // begin digesting a hash
-        let handle_hash = tokio::spawn(async move {
-            let mut chunk = Vec::with_capacity(CHUNK_SIZE.min(path.len.try_into()?));
-            let mut hasher = Hasher::default();
-
-            'pipe: loop {
-                // clean up buffer
-                chunk.clear();
-
-                // read to buffer
-                let chunk_size = CHUNK_SIZE as u64;
-                let chunk_size = chunk_size.min(path.len - hasher.len() as u64);
-                let mut take = (&mut data).take(chunk_size);
-                take.read_to_end(&mut chunk).await?;
-
-                let chunk_len = chunk.len();
-                if chunk_len > 0 {
-                    let ((), tx_result) =
-                        tokio::join!(async { hasher.update(&chunk) }, tx.write_all(&chunk));
-                    tx_result?;
-                }
-
-                let len = hasher.len() as u64;
-                if len >= path.len || chunk_len == 0 {
-                    break 'pipe Result::<_, ::ipis::core::anyhow::Error>::Ok(Path {
-                        value: hasher.finalize(),
-                        len,
-                    });
-                }
-            }
-        });
+        // impl Sync for R
+        tokio::spawn(async move { tokio::io::copy(&mut data, &mut tx).await });
 
         // external call
-        let mut file = tokio::fs::File::create(path_canonical).await?;
-        tokio::io::copy(&mut rx, &mut file).await?;
+        let mut rx: Compat<&mut DuplexStream> = unsafe { ::core::mem::transmute(rx.compat_mut()) };
+        let rx: &mut Compat<&mut DuplexStream> = unsafe { ::core::mem::transmute(&mut rx) };
+        let options = ipfs_api::request::Add::builder()
+            .cid_version(1)
+            .pin(true)
+            .build();
+        let response = self.ipfs.add_async_with_options(rx, options).await?;
 
         // poll hash
-        let path_from_data = handle_hash.await??;
+        let path_from_data = Path {
+            value: response.hash.parse()?,
+            len: path.len,
+        };
 
         // validate hash
         if path == path_from_data {
@@ -181,27 +189,24 @@ where
 
     async fn contains(&self, path: &Path) -> Result<bool> {
         // get canonical path
-        let path = self.to_path_canonical(self.ipiis.account_ref(), path);
+        let path = *path;
 
         // external call
-        Ok(tokio::fs::metadata(path).await.is_ok())
+        let result = self.ipfs.pin_ls(Some(&path.value.to_string()), None).await;
+
+        // pack data
+        Ok(result.is_ok())
     }
 
     async fn delete(&self, path: &Path) -> Result<()> {
         // get canonical path
-        let path = self.to_path_canonical(self.ipiis.account_ref(), path);
+        let path = *path;
 
         // external call
-        tokio::fs::remove_file(path).await.map_err(Into::into)
-    }
-}
+        self.ipfs.pin_rm(&path.value.to_string(), true).await?;
 
-impl<IpiisClient> IpsisClientInner<IpiisClient> {
-    fn to_path_canonical(&self, account: &AccountRef, path: &Path) -> PathBuf {
-        let mut buf = (*self.dir).clone();
-        buf.push(account.to_string());
-        buf.push(path.value.to_string());
-        buf
+        // pack data
+        Ok(())
     }
 }
 
