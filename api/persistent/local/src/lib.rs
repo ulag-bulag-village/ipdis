@@ -76,7 +76,7 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
     }
 
     pub fn new_dir() -> Result<Arc<PathBuf>> {
-        infer("ipsis_client_s3_local_dir")
+        infer("ipsis_client_local_dir")
             .or_else(|e| {
                 let mut dir = ::dirs::home_dir().ok_or(e)?;
                 dir.push(".ipsis");
