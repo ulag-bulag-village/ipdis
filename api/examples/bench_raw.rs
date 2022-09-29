@@ -1,7 +1,7 @@
 use ipiis_api::{client::IpiisClient, common::Ipiis, server::IpiisServer};
 use ipis::{
     core::{anyhow::Result, value::hash::Hash},
-    env::Infer,
+    env::{infer, Infer},
     path::Path,
     tokio::{self, io::AsyncReadExt},
 };
@@ -32,7 +32,8 @@ async fn main() -> Result<()> {
         .set_account_primary(KIND.as_ref(), &server_account)
         .await?;
     client_remote
-        .set_address(KIND.as_ref(), &server_account, &"127.0.0.1:5001".parse()?)
+        .set_address(KIND.as_ref(), &server_account, 
+        &infer("ipiis_client_account_primary_address")?,)
         .await?;
 
     // download a model (deepset/roberta-base-squad2.onnx)

@@ -28,5 +28,7 @@ ipsis-api-persistent-s3 = { path = "./persistent/s3", optional = true }
 ipsis-common = { path = "../common" }
 
 [dev-dependencies]
+ipsis-modules-gdown = { path = "../modules/gdown" }
+
 bytecheck = "0.6"
 rkyv = { version = "0.7", features = ["archive_le"] }
