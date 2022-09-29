@@ -1,10 +1,7 @@
 use bytecheck::CheckBytes;
 use ipis::{
     class::Class,
-    core::{
-        anyhow::{bail, Result},
-        signed::IsSigned,
-    },
+    core::{anyhow::Result, signed::IsSigned},
     env::Infer,
     tokio,
 };
@@ -56,9 +53,15 @@ async fn main() -> Result<()> {
     client.delete(&path_update_changed).await?;
 
     // data is not exist after DELETE
-    if client.contains(&path_update_changed).await? {
-        bail!("data not deleted!")
-    } else {
-        Ok(())
+    #[cfg(not(feature = "ipfs"))]
+    {
+        match client.get::<MyData>(&path_update_changed).await {
+            Ok(_) => ::ipis::core::anyhow::bail!("data not deleted!"),
+            Err(_) => {
+                assert!(!client.contains(&path_create).await?);
+                assert!(!client.contains(&path_update_changed).await?);
+            }
+        }
     }
+    Ok(())
 }

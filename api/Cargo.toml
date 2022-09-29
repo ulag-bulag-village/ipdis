@@ -30,5 +30,3 @@ ipsis-common = { path = "../common" }
 [dev-dependencies]
 bytecheck = "0.6"
 rkyv = { version = "0.7", features = ["archive_le"] }
-
-ipsis-modules-gdown = { path = "../modules/gdown" }

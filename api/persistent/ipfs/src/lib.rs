@@ -12,7 +12,7 @@ use ipis::{
     path::Path,
     tokio::{
         self,
-        io::{AsyncRead, AsyncWriteExt, DuplexStream},
+        io::{AsyncRead, AsyncReadExt, AsyncWriteExt, DuplexStream},
     },
 };
 use ipsis_common::Ipsis;
@@ -147,7 +147,7 @@ where
         Ok(rx)
     }
 
-    async fn put_raw<R>(&self, path: &Path, mut data: R) -> Result<()>
+    async fn put_raw<R>(&self, path: &Path, data: R) -> Result<()>
     where
         R: AsyncRead + Send + Unpin + 'static,
     {
@@ -158,7 +158,7 @@ where
         let (mut tx, mut rx) = tokio::io::duplex(CHUNK_SIZE);
 
         // impl Sync for R
-        tokio::spawn(async move { tokio::io::copy(&mut data, &mut tx).await });
+        tokio::spawn(async move { tokio::io::copy(&mut data.take(path.len), &mut tx).await });
 
         // external call
         let mut rx: Compat<&mut DuplexStream> = unsafe { ::core::mem::transmute(rx.compat_mut()) };

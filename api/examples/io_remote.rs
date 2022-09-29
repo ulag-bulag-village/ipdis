@@ -2,11 +2,8 @@ use bytecheck::CheckBytes;
 use ipiis_api::{client::IpiisClient, common::Ipiis, server::IpiisServer};
 use ipis::{
     class::Class,
-    core::{
-        anyhow::{bail, Result},
-        signed::IsSigned,
-    },
-    env::Infer,
+    core::{anyhow::Result, signed::IsSigned},
+    env::{infer, Infer},
     tokio,
 };
 use ipsis_api::{
@@ -28,7 +25,7 @@ impl IsSigned for MyData {}
 #[tokio::main]
 async fn main() -> Result<()> {
     // deploy a server
-    let server = IpsisServer::genesis(5001).await?;
+    let server = IpsisServer::genesis(9801).await?;
     let server_account = {
         let server: &IpiisServer = server.as_ref();
         *server.account_ref()
@@ -41,7 +38,11 @@ async fn main() -> Result<()> {
         .set_account_primary(KIND.as_ref(), &server_account)
         .await?;
     client
-        .set_address(KIND.as_ref(), &server_account, &"127.0.0.1:5001".parse()?)
+        .set_address(
+            KIND.as_ref(),
+            &server_account,
+            &infer("ipiis_client_account_primary_address")?,
+        )
         .await?;
 
     // let's make a data we want to store
@@ -74,12 +75,15 @@ async fn main() -> Result<()> {
     client.delete(&path_update_changed).await?;
 
     // data is not exist after DELETE
-    match client.get::<MyData>(&path_update_changed).await {
-        Ok(_) => bail!("data not deleted!"),
-        Err(_) => {
-            assert!(!client.contains(&path_create).await?);
-            assert!(!client.contains(&path_update_changed).await?);
-            Ok(())
+    #[cfg(not(feature = "ipfs"))]
+    {
+        match client.get::<MyData>(&path_update_changed).await {
+            Ok(_) => ::ipis::core::anyhow::bail!("data not deleted!"),
+            Err(_) => {
+                assert!(!client.contains(&path_create).await?);
+                assert!(!client.contains(&path_update_changed).await?);
+            }
         }
     }
+    Ok(())
 }

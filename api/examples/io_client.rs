@@ -2,11 +2,8 @@ use bytecheck::CheckBytes;
 use ipiis_api::{client::IpiisClient, common::Ipiis};
 use ipis::{
     class::Class,
-    core::{
-        anyhow::{bail, Result},
-        signed::IsSigned,
-    },
-    env::Infer,
+    core::{anyhow::Result, signed::IsSigned},
+    env::{infer, Infer},
     tokio,
 };
 use ipsis_api::common::Ipsis;
@@ -34,7 +31,7 @@ async fn main() -> Result<()> {
         .set_address(
             KIND.as_ref(),
             client.account_ref(),
-            &"127.0.0.1:5001".parse()?,
+            &infer("ipiis_client_account_primary_address")?,
         )
         .await?;
 
@@ -68,12 +65,15 @@ async fn main() -> Result<()> {
     client.delete(&path_update_changed).await?;
 
     // data is not exist after DELETE
-    match client.get::<MyData>(&path_update_changed).await {
-        Ok(_) => bail!("data not deleted!"),
-        Err(_) => {
-            assert!(!client.contains(&path_create).await?);
-            assert!(!client.contains(&path_update_changed).await?);
-            Ok(())
+    #[cfg(not(feature = "ipfs"))]
+    {
+        match client.get::<MyData>(&path_update_changed).await {
+            Ok(_) => ::ipis::core::anyhow::bail!("data not deleted!"),
+            Err(_) => {
+                assert!(!client.contains(&path_create).await?);
+                assert!(!client.contains(&path_update_changed).await?);
+            }
         }
     }
+    Ok(())
 }
