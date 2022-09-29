@@ -6,6 +6,7 @@ members = [
   "api/persistent/local",
   "api/persistent/s3",
   "common",
+  "modules/bench",
   "modules/gdown",
   "modules/local",
   "modules/web",

@@ -93,6 +93,10 @@ where
 {
     type Reader = tokio::io::DuplexStream;
 
+    async fn protocol(&self) -> Result<String> {
+        Ok("local".into())
+    }
+
     async fn get_raw(&self, path: &Path) -> Result<<Self as Ipsis>::Reader> {
         // get canonical path
         let path = *path;

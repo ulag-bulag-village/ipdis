@@ -57,6 +57,7 @@ handle_external_call!(
     server: IpsisServer => IpsisClientInner<IpiisServer>,
     name: run,
     request: ::ipsis_common::io => {
+        Protocol => handle_protocol,
         Get => handle_get,
         Contains => handle_contains,
         Delete => handle_delete,
@@ -67,6 +68,28 @@ handle_external_call!(
 );
 
 impl IpsisServer {
+    async fn handle_protocol(
+        client: &IpsisClientInner<IpiisServer>,
+        req: ::ipsis_common::io::request::Protocol<'static>,
+    ) -> Result<::ipsis_common::io::response::Protocol<'static>> {
+        // unpack sign
+        let sign_as_guarantee = req.__sign.into_owned().await?;
+
+        // handle data
+        let protocol = client.protocol().await?;
+
+        // sign data
+        let server: &IpiisServer = client.as_ref();
+        let sign = server.sign_as_guarantor(sign_as_guarantee)?;
+
+        // pack data
+        Ok(::ipsis_common::io::response::Protocol {
+            __lifetime: Default::default(),
+            __sign: ::ipis::stream::DynStream::Owned(sign),
+            protocol: ::ipis::stream::DynStream::Owned(protocol),
+        })
+    }
+
     async fn handle_get(
         client: &IpsisClientInner<IpiisServer>,
         req: ::ipsis_common::io::request::Get<'static>,

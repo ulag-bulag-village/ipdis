@@ -27,6 +27,8 @@ use rkyv::{
 pub trait Ipsis {
     type Reader: AsyncRead + Send + Unpin + 'static;
 
+    async fn protocol(&self) -> Result<String>;
+
     async fn get<Res>(&self, path: &Path) -> Result<Res>
     where
         Res: Class
@@ -82,6 +84,24 @@ where
     IpiisClient: Ipiis + Send + Sync,
 {
     type Reader = <IpiisClient as Ipiis>::Reader;
+
+    async fn protocol(&self) -> Result<String> {
+        // next target
+        let target = self.get_account_primary(KIND.as_ref()).await?;
+
+        // external call
+        let (protocol,) = external_call!(
+            client: self,
+            target: KIND.as_ref() => &target,
+            request: crate::io => Protocol,
+            sign: self.sign_owned(target, ())?,
+            inputs: { },
+            outputs: { protocol, },
+        );
+
+        // unpack response
+        Ok(protocol)
+    }
 
     async fn get_raw(&self, path: &Path) -> Result<<Self as Ipsis>::Reader> {
         // next target
@@ -171,6 +191,15 @@ where
 }
 
 define_io! {
+    Protocol {
+        inputs: { },
+        input_sign: Data<GuaranteeSigned, ()>,
+        outputs: {
+            protocol: String,
+        },
+        output_sign: Data<GuarantorSigned, ()>,
+        generics: { },
+    },
     Get {
         inputs: { },
         input_sign: Data<GuaranteeSigned, Path>,
