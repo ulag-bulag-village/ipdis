@@ -39,8 +39,8 @@ pub struct ArgsInputs {
     pub size: Byte,
 
     /// Number of iteration
-    #[clap(short, long, env = "NUM_ITERATIONS", default_value_t = 30)]
-    pub iter: u32,
+    #[clap(short, long, env = "NUM_ITERATIONS", default_value_t = Byte::from_bytes(30))]
+    pub iter: Byte,
 
     /// Number of threads
     #[clap(long, env = "NUM_THREADS", default_value_t = 1)]

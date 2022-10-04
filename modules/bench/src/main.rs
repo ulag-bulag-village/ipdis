@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
     info!("- Number of Threads: {}", args.inputs.num_threads);
 
     let size_bytes: usize = args.inputs.size.get_bytes().try_into()?;
-    let num_iteration: usize = args.inputs.iter.try_into()?;
+    let num_iteration: usize = args.inputs.iter.get_bytes().try_into()?;
     let num_threads: usize = args.inputs.num_threads.try_into()?;
 
     let simulation = args.simulation;
