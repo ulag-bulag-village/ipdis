@@ -27,6 +27,10 @@ pub struct ResultsOutputs {
 
     /// Write performance
     pub write: ResultsOutputsMetric,
+
+    /// Cleanup performance
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cleanup: Option<ResultsOutputsMetric>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

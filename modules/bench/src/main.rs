@@ -40,6 +40,8 @@ async fn main() -> Result<()> {
     let num_iteration: usize = args.inputs.iter.try_into()?;
     let num_threads: usize = args.inputs.num_threads.try_into()?;
 
+    let simulation = args.simulation;
+
     // init data
     info!("- Initializing...");
     let range = Uniform::from(0..=255);
@@ -67,14 +69,16 @@ async fn main() -> Result<()> {
         .collect();
 
     // begin benchmaring - Writing
-    info!("- Benchmarking Writing ...");
     let duration_write = {
+        info!("- Benchmarking Writing ...");
+
         let instant = Instant::now();
         futures::future::try_join_all(
             (0..args.inputs.num_threads)
                 .map(|offset| crate::protocol::BenchmarkCtx {
                     num_threads,
                     size_bytes,
+                    simulation,
 
                     offset,
                     dataset: dataset.clone(),
@@ -87,14 +91,16 @@ async fn main() -> Result<()> {
     };
 
     // begin benchmaring - Reading
-    info!("- Benchmarking Reading ...");
     let duration_read = {
+        info!("- Benchmarking Reading ...");
+
         let instant = Instant::now();
         futures::future::try_join_all(
             (0..args.inputs.num_threads)
                 .map(|offset| crate::protocol::BenchmarkCtx {
                     num_threads,
                     size_bytes,
+                    simulation,
 
                     offset,
                     dataset: dataset.clone(),
@@ -106,14 +112,17 @@ async fn main() -> Result<()> {
         instant.elapsed()
     };
 
-    // cleanup
-    info!("- Cleaning Up ...");
-    if args.inputs.clean {
+    // begin benchmaring - Cleanup
+    let duration_cleanup = if args.inputs.clean {
+        info!("- Benchmarking Cleanup ...");
+
+        let instant = Instant::now();
         futures::future::try_join_all(
             (0..args.inputs.num_threads)
                 .map(|offset| crate::protocol::BenchmarkCtx {
                     num_threads,
                     size_bytes,
+                    simulation,
 
                     offset,
                     dataset: dataset.clone(),
@@ -122,7 +131,10 @@ async fn main() -> Result<()> {
                 .map(|ctx| protocol.cleanup(ctx)),
         )
         .await?;
-    }
+        Some(instant.elapsed())
+    } else {
+        None
+    };
 
     // collect results
     info!("- Collecting results ...");
@@ -137,6 +149,11 @@ async fn main() -> Result<()> {
             iops: num_iteration as f64 / duration_write.as_secs_f64(),
             speed_bps: (8 * size_bytes * num_iteration) as f64 / duration_write.as_secs_f64(),
         },
+        cleanup: duration_cleanup.map(|duration_cleanup| self::io::ResultsOutputsMetric {
+            elapsed_time_s: duration_cleanup.as_secs_f64(),
+            iops: num_iteration as f64 / duration_cleanup.as_secs_f64(),
+            speed_bps: (8 * size_bytes * num_iteration) as f64 / duration_cleanup.as_secs_f64(),
+        }),
     };
 
     // save results to a file
@@ -166,8 +183,14 @@ async fn main() -> Result<()> {
     info!("- Finished!");
     info!("- Elapsed Time (Read): {:?}", outputs.read.elapsed_time_s);
     info!("- Elapsed Time (Write): {:?}", outputs.write.elapsed_time_s);
+    if let Some(cleanup) = outputs.cleanup.as_ref() {
+        info!("- Elapsed Time (Cleanup): {:?}", cleanup.elapsed_time_s);
+    }
     info!("- IOPS (Read): {}", outputs.read.iops);
     info!("- IOPS (Write): {}", outputs.write.iops);
+    if let Some(cleanup) = outputs.cleanup.as_ref() {
+        info!("- IOPS (Cleanup): {}", cleanup.iops);
+    }
     info!("- Speed (Read): {}bps", {
         let mut speed = Byte::from_bytes(outputs.read.speed_bps as u128)
             .get_appropriate_unit(false)
@@ -182,6 +205,15 @@ async fn main() -> Result<()> {
         speed.pop();
         speed
     });
+    if let Some(cleanup) = outputs.cleanup.as_ref() {
+        info!("- Speed (Cleanup): {}bps", {
+            let mut speed = Byte::from_bytes(cleanup.speed_bps as u128)
+                .get_appropriate_unit(false)
+                .to_string();
+            speed.pop();
+            speed
+        });
+    }
 
     Ok(())
 }

@@ -12,6 +12,8 @@ pub struct Args {
     pub ipiis: ArgsIpiis,
     #[clap(flatten)]
     pub inputs: ArgsInputs,
+    #[clap(flatten)]
+    pub simulation: ArgsSimulation,
 }
 
 #[derive(Debug, Parser)]
@@ -64,4 +66,11 @@ pub enum ArgsProtocol {
     Local,
     #[cfg(feature = "s3")]
     S3,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Parser)]
+pub struct ArgsSimulation {
+    /// Manual delay in milliseconds
+    #[clap(long, env = "SIMULATION_DELAY_MS")]
+    pub delay_ms: Option<u64>,
 }
