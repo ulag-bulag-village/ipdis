@@ -13,9 +13,19 @@ repository = "https://github.com/ulagbulag-village/ipsis"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["ipiis", "ipfs", "local", "s3"]
+ipiis = ["ipiis-api"]
+ipfs = ["ipsis-api-persistent-ipfs"]
+local = ["ipsis-api-persistent-local"]
+s3 = ["ipsis-api-persistent-s3"]
+
 [dependencies]
 ipis = { git = "https://github.com/ulagbulag-village/ipis" }
-ipiis-api = { git = "https://github.com/ulagbulag-village/ipiis" }
+ipiis-api = { git = "https://github.com/ulagbulag-village/ipiis", optional = true }
+ipsis-api-persistent-ipfs = { path = "../../api/persistent/ipfs", optional = true }
+ipsis-api-persistent-local = { path = "../../api/persistent/local", optional = true }
+ipsis-api-persistent-s3 = { path = "../../api/persistent/s3", optional = true }
 ipsis-common = { path = "../../common" }
 
 byte-unit = { version = "4.0", features = ["serde"] }

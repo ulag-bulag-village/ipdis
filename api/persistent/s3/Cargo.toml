@@ -21,4 +21,7 @@ ipiis-api = { git = "https://github.com/ulagbulag-village/ipiis" }
 ipsis-common = { path = "../../../common" }
 
 http = "0.2"
-rust-s3 = { git = "https://github.com/ulagbulag-village/rust-s3" }
+# rust-s3 = { version = "0.32", features = ["with-tokio"] }
+rust-s3 = { git = "https://github.com/ulagbulag-village/rust-s3", features = [
+    "with-tokio",
+] }

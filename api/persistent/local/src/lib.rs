@@ -201,7 +201,7 @@ where
 }
 
 impl<IpiisClient> IpsisClientInner<IpiisClient> {
-    fn to_path_canonical(&self, account: &AccountRef, path: &Path) -> PathBuf {
+    pub fn to_path_canonical(&self, account: &AccountRef, path: &Path) -> PathBuf {
         let mut buf = (*self.dir).clone();
         buf.push(account.to_string());
         buf.push(path.value.to_string());

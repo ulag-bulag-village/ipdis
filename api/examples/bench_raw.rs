@@ -32,8 +32,11 @@ async fn main() -> Result<()> {
         .set_account_primary(KIND.as_ref(), &server_account)
         .await?;
     client_remote
-        .set_address(KIND.as_ref(), &server_account, 
-        &infer("ipiis_client_account_primary_address")?,)
+        .set_address(
+            KIND.as_ref(),
+            &server_account,
+            &infer("ipiis_client_account_primary_address")?,
+        )
         .await?;
 
     // download a model (deepset/roberta-base-squad2.onnx)
@@ -49,9 +52,13 @@ async fn main() -> Result<()> {
     println!("- Downloaded data");
     println!();
 
+    // get bucket
+    #[cfg(feature = "s3")]
+    let bucket = client_local.bucket();
+
     // get canonical path
     #[cfg(feature = "s3")]
-    let path_canonical = to_path_canonical(client_local.ipiis.account_ref(), &path);
+    let path_canonical = client_local.to_path_canonical(client_local.ipiis.account_ref(), &path);
 
     {
         let mut buf = Vec::with_capacity(path.len.try_into()?);
@@ -75,24 +82,24 @@ async fn main() -> Result<()> {
         }
 
         // download a file via `s3 (parallel)`
-        #[cfg(feature = "s3")]
-        {
-            let time_total = std::time::Instant::now();
-            for _ in 0..COUNT {
-                {
-                    buf.clear();
-                    bucket
-                        .get_object_stream_parallel(&path_canonical, &mut buf)
-                        .await?;
-                }
-                assert_eq!(buf.len() as u64, path.len);
-            }
-            assert_eq!(Hash::with_bytes(&buf), path.value);
-            println!(
-                "- Average elapsed time for download via `s3 (parallel)`: {:?}",
-                time_total.elapsed() / COUNT,
-            );
-        }
+        // #[cfg(feature = "s3")]
+        // {
+        //     let time_total = std::time::Instant::now();
+        //     for _ in 0..COUNT {
+        //         {
+        //             buf.clear();
+        //             bucket
+        //                 .get_object_stream_parallel(&path_canonical, &mut buf)
+        //                 .await?;
+        //         }
+        //         assert_eq!(buf.len() as u64, path.len);
+        //     }
+        //     assert_eq!(Hash::with_bytes(&buf), path.value);
+        //     println!(
+        //         "- Average elapsed time for download via `s3 (parallel)`: {:?}",
+        //         time_total.elapsed() / COUNT,
+        //     );
+        // }
 
         // download a file via `Ipsis (local)`
         let time_total = std::time::Instant::now();
@@ -128,9 +135,4 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
-}
-
-#[cfg(feature = "s3")]
-fn to_path_canonical(account: &::ipis::core::account::AccountRef, path: &Path) -> String {
-    format!("{}/{}", account.to_string(), path.value.to_string())
 }

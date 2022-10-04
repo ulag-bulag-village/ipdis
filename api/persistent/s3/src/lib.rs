@@ -100,6 +100,10 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
             .with_path_style()
             .into())
     }
+
+    pub fn bucket(&self) -> &Arc<Bucket> {
+        &self.bucket
+    }
 }
 
 #[async_trait]
@@ -116,7 +120,7 @@ where
     async fn get_raw(&self, path: &Path) -> Result<<Self as Ipsis>::Reader> {
         // get canonical path
         let path = *path;
-        let path_canonical = to_path_canonical(self.ipiis.account_ref(), &path);
+        let path_canonical = self.to_path_canonical(self.ipiis.account_ref(), &path);
 
         // create a channel
         let (mut tx, rx) = tokio::io::duplex(CHUNK_SIZE.min(path.len.try_into()?));
@@ -140,7 +144,7 @@ where
     {
         // get canonical path
         let path = *path;
-        let path_canonical = to_path_canonical(self.ipiis.account_ref(), &path);
+        let path_canonical = self.to_path_canonical(self.ipiis.account_ref(), &path);
 
         // create a channel
         let (mut tx, mut rx) = tokio::io::duplex(CHUNK_SIZE);
@@ -180,7 +184,7 @@ where
         // external call
         let status_code = self
             .bucket
-            .put_object_stream_parallel(&mut rx, &path_canonical)
+            .put_object_stream(&mut rx, &path_canonical)
             .await?;
 
         // validate response
@@ -203,7 +207,7 @@ where
 
     async fn contains(&self, path: &Path) -> Result<bool> {
         // get canonical path
-        let path = to_path_canonical(self.ipiis.account_ref(), path);
+        let path = self.to_path_canonical(self.ipiis.account_ref(), path);
 
         // external call
         let (_, status_code) = self.bucket.head_object(path).await?;
@@ -219,7 +223,13 @@ where
 
     async fn delete(&self, path: &Path) -> Result<()> {
         // get canonical path
-        let path = to_path_canonical(self.ipiis.account_ref(), path);
+        let path = self.to_path_canonical(self.ipiis.account_ref(), path);
+
+        // // external call
+        // let result = self.bucket.delete_object(path).await?;
+
+        // // validate response
+        // validate_http_status_code(result.status_code())?;
 
         // external call
         let (_, status_code) = self.bucket.delete_object(path).await?;
@@ -232,8 +242,10 @@ where
     }
 }
 
-fn to_path_canonical(account: &AccountRef, path: &Path) -> String {
-    format!("{}/{}", account.to_string(), path.value.to_string())
+impl<IpiisClient> IpsisClientInner<IpiisClient> {
+    pub fn to_path_canonical(&self, account: &AccountRef, path: &Path) -> String {
+        format!("{}/{}", account.to_string(), path.value.to_string())
+    }
 }
 
 fn validate_http_status_code(status_code: u16) -> Result<()> {

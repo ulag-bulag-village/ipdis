@@ -83,6 +83,10 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
             .map(Into::into)
             .map_err(Into::into)
     }
+
+    pub fn ipfs(&self) -> &Arc<IpfsClient> {
+        &self.ipfs
+    }
 }
 
 #[async_trait]

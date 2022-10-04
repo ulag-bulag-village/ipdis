@@ -1,21 +1,18 @@
 mod io;
+mod protocol;
 
 use std::{sync::Arc, time::Instant};
 
 use byte_unit::Byte;
 use clap::Parser;
-use ipiis_api::{client::IpiisClient, common::Ipiis};
 use ipis::{
     core::{anyhow::Result, chrono::Utc, value::hash::Hash},
-    env::Infer,
     futures,
     log::info,
     path::Path,
     tokio,
 };
-use ipsis_common::{Ipsis, KIND};
 use rand::{distributions::Uniform, Rng};
-use tokio::io::AsyncReadExt;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -29,16 +26,8 @@ async fn main() -> Result<()> {
     let timestamp = Utc::now();
     info!("- Starting Time: {timestamp:?}");
 
-    // create a client
-    let client: Arc<_> = IpiisClient::try_infer().await?.into();
-
-    // registre the server account as primary
-    client
-        .set_account_primary(KIND.as_ref(), &args.ipiis.account)
-        .await?;
-    client
-        .set_address(KIND.as_ref(), &args.ipiis.account, &args.ipiis.address)
-        .await?;
+    // init protocol
+    let protocol = self::protocol::select(&args).await?;
 
     // print the configuration
     info!("- Account: {}", args.ipiis.account.to_string());
@@ -49,6 +38,7 @@ async fn main() -> Result<()> {
 
     let size_bytes: usize = args.inputs.size.get_bytes().try_into()?;
     let num_iteration: usize = args.inputs.iter.try_into()?;
+    let num_threads: usize = args.inputs.num_threads.try_into()?;
 
     // init data
     info!("- Initializing...");
@@ -82,23 +72,15 @@ async fn main() -> Result<()> {
         let instant = Instant::now();
         futures::future::try_join_all(
             (0..args.inputs.num_threads)
-                .map(|offset| (offset, client.clone(), dataset.clone(), data.clone()))
-                .map(|(offset, client, dataset, data)| async move {
-                    for (path, range) in dataset
-                        .iter()
-                        .skip(offset as usize)
-                        .step_by(args.inputs.num_threads as usize)
-                    {
-                        let data = unsafe {
-                            ::core::slice::from_raw_parts(
-                                data.as_ptr().add(range.start),
-                                size_bytes,
-                            )
-                        };
-                        client.put_raw(path, data).await?;
-                    }
-                    Result::<_, ::ipis::core::anyhow::Error>::Ok(())
-                }),
+                .map(|offset| crate::protocol::BenchmarkCtx {
+                    num_threads,
+                    size_bytes,
+
+                    offset,
+                    dataset: dataset.clone(),
+                    data: data.clone(),
+                })
+                .map(|ctx| protocol.write(ctx)),
         )
         .await?;
         instant.elapsed()
@@ -110,22 +92,15 @@ async fn main() -> Result<()> {
         let instant = Instant::now();
         futures::future::try_join_all(
             (0..args.inputs.num_threads)
-                .map(|offset| (offset, client.clone(), dataset.clone()))
-                .map(|(offset, client, dataset)| async move {
-                    for (path, _) in dataset
-                        .iter()
-                        .skip(offset as usize)
-                        .step_by(args.inputs.num_threads as usize)
-                    {
-                        let mut recv = client.get_raw(path).await?;
+                .map(|offset| crate::protocol::BenchmarkCtx {
+                    num_threads,
+                    size_bytes,
 
-                        let len = recv.read_u64().await?;
-                        assert_eq!(len as usize, size_bytes);
-
-                        tokio::io::copy(&mut recv, &mut tokio::io::sink()).await?;
-                    }
-                    Result::<_, ::ipis::core::anyhow::Error>::Ok(())
-                }),
+                    offset,
+                    dataset: dataset.clone(),
+                    data: data.clone(),
+                })
+                .map(|ctx| protocol.read(ctx)),
         )
         .await?;
         instant.elapsed()
@@ -134,9 +109,19 @@ async fn main() -> Result<()> {
     // cleanup
     info!("- Cleaning Up ...");
     if args.inputs.clean {
-        for (path, _) in dataset.iter() {
-            client.delete(path).await?;
-        }
+        futures::future::try_join_all(
+            (0..args.inputs.num_threads)
+                .map(|offset| crate::protocol::BenchmarkCtx {
+                    num_threads,
+                    size_bytes,
+
+                    offset,
+                    dataset: dataset.clone(),
+                    data: data.clone(),
+                })
+                .map(|ctx| protocol.cleanup(ctx)),
+        )
+        .await?;
     }
 
     // collect results
@@ -156,7 +141,7 @@ async fn main() -> Result<()> {
 
     // save results to a file
     if let Some(mut save_dir) = args.inputs.save_dir.clone() {
-        let protocol = client.protocol().await?;
+        let protocol = protocol.to_string().await?;
         let timestamp = timestamp.to_rfc3339();
         let filename = format!("ipwis-{protocol}-{timestamp}.json");
         let filepath = {

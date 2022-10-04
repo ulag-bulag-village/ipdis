@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, path::PathBuf};
 
 use byte_unit::Byte;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use ipis::core::account::AccountRef;
 use serde::{Deserialize, Serialize};
 
@@ -27,8 +27,13 @@ pub struct ArgsIpiis {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Parser)]
 pub struct ArgsInputs {
+    /// Protocol of benchmarking stream
+    #[clap(value_enum)]
+    #[clap(short, long, env = "PROTOCOL", default_value_t = ArgsProtocol::Ipiis)]
+    pub protocol: ArgsProtocol,
+
     /// Size of benchmarking stream
-    #[clap(short, env = "DATA_SIZE", long, default_value_t = Byte::from_bytes(64_000_000))]
+    #[clap(short, long, env = "DATA_SIZE", default_value_t = Byte::from_bytes(64_000_000))]
     pub size: Byte,
 
     /// Number of iteration
@@ -46,4 +51,17 @@ pub struct ArgsInputs {
     /// Directory to save the results (filename is hashed by protocol and starting time)
     #[clap(long, env = "SAVE_DIR")]
     pub save_dir: Option<PathBuf>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, ValueEnum)]
+#[serde(rename_all = "snake_case")]
+pub enum ArgsProtocol {
+    #[cfg(feature = "ipiis")]
+    Ipiis,
+    #[cfg(feature = "ipfs")]
+    Ipfs,
+    #[cfg(feature = "local")]
+    Local,
+    #[cfg(feature = "s3")]
+    S3,
 }
