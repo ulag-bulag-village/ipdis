@@ -14,7 +14,7 @@ repository = "https://github.com/ulagbulag-village/ipsis"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["ipfs"]
+default = ["local"]
 ipfs = ["ipsis-api-persistent-ipfs"]
 local = ["ipsis-api-persistent-local"]
 s3 = ["ipsis-api-persistent-s3"]
