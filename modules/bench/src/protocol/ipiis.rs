@@ -4,7 +4,7 @@ use ipis::{
     core::anyhow::{Ok, Result},
     env::Infer,
 };
-use ipsis_common::{Ipsis, KIND};
+use ipsis_common::KIND;
 
 use crate::io::ArgsIpiis;
 
@@ -32,7 +32,7 @@ impl ProtocolImpl {
 #[async_trait]
 impl super::Protocol for ProtocolImpl {
     async fn to_string(&self) -> Result<String> {
-        Ok(format!("ipiis_{}", self.client.protocol().await?))
+        Ok(format!("ipiis_{}", self.client.protocol()?))
     }
 
     async fn read(&self, ctx: super::BenchmarkCtx) -> Result<()> {
