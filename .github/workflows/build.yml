@@ -65,7 +65,7 @@ jobs:
             ./Dockerfile
           build-args: |
             ALPINE_VERSION=${{ env.ALPINE_VERSION }}
-            API_FEATURES="ipfs"
+            API_FEATURES=ipfs
 
       - name: Push To ${{ env.REGISTRY }}
         id: push-to-quay
@@ -110,7 +110,7 @@ jobs:
             ./Dockerfile
           build-args: |
             ALPINE_VERSION=${{ env.ALPINE_VERSION }}
-            API_FEATURES="local"
+            API_FEATURES=local
 
       - name: Push To ${{ env.REGISTRY }}
         id: push-to-quay
@@ -155,7 +155,7 @@ jobs:
             ./Dockerfile
           build-args: |
             ALPINE_VERSION=${{ env.ALPINE_VERSION }}
-            API_FEATURES="s3"
+            API_FEATURES=s3
 
       - name: Push To ${{ env.REGISTRY }}
         id: push-to-quay
