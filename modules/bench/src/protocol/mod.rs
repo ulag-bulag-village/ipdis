@@ -9,13 +9,13 @@ use ipis::{
 use ipsis_common::Ipsis;
 
 #[cfg(feature = "ipfs")]
-pub mod ipfs;
+mod ipfs;
 #[cfg(feature = "ipiis")]
-pub mod ipiis;
+mod ipiis;
 #[cfg(feature = "local")]
-pub mod local;
+mod local;
 #[cfg(feature = "s3")]
-pub mod s3;
+mod s3;
 
 #[async_trait]
 pub trait Protocol {

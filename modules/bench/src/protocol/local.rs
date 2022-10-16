@@ -3,15 +3,16 @@ use ipis::{
     core::anyhow::{Ok, Result},
     env::Infer,
 };
+use ipsis_api_persistent_local::IpsisClient;
 
 pub struct ProtocolImpl {
-    client: ::ipsis_api_persistent_local::IpsisClient,
+    client: IpsisClient,
 }
 
 impl ProtocolImpl {
     pub async fn try_new() -> Result<Self> {
         // init client
-        let client = ::ipsis_api_persistent_local::IpsisClient::try_infer().await?;
+        let client = IpsisClient::try_infer().await?;
 
         Ok(Self { client })
     }
