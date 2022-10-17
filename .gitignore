@@ -17,4 +17,4 @@ Cargo.lock
 /.vscode/
 
 # Benchmark results
-**/ipwis-*.json
+**/benchmark-*.json
