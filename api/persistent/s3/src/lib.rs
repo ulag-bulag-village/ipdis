@@ -84,7 +84,10 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
                 region: region_name,
                 endpoint: match endpoint.find("://") {
                     Some(_) => endpoint,
-                    None => format!("http://{}", endpoint),
+                    None => {
+                        let port = infer::<_, u16>("ipsis_client_s3_region_port").unwrap_or(80);
+                        format!("http://{endpoint}:{port}")
+                    }
                 },
             },
             Err(_) => region_name.parse()?,
