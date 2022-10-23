@@ -32,7 +32,11 @@ impl ProtocolImpl {
 #[async_trait]
 impl super::Protocol for ProtocolImpl {
     async fn to_string(&self) -> Result<String> {
-        Ok(format!("ipiis_{}", self.client.protocol()?))
+        Ok(format!(
+            "ipiis_{}_{}",
+            ::ipiis_api::common::Ipiis::protocol(&self.client)?,
+            ::ipsis_common::Ipsis::protocol(&self.client).await?,
+        ))
     }
 
     async fn read(&self, ctx: super::BenchmarkCtx) -> Result<()> {

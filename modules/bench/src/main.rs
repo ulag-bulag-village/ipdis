@@ -28,6 +28,7 @@ async fn main() -> Result<()> {
 
     // init protocol
     let protocol = self::protocol::select(&args).await?;
+    let protocol_name = protocol.to_string().await?;
 
     // print the configuration
     info!("- Account: {}", args.ipiis.account.to_string());
@@ -35,6 +36,7 @@ async fn main() -> Result<()> {
     info!("- Data Size: {}", args.inputs.size);
     info!("- Number of Iteration: {}", args.inputs.iter);
     info!("- Number of Threads: {}", args.inputs.num_threads);
+    info!("- Protocol: {protocol_name}");
 
     let size_bytes: usize = args.inputs.size.get_bytes().try_into()?;
     let num_iteration: usize = args.inputs.iter.get_bytes().try_into()?;
@@ -139,6 +141,7 @@ async fn main() -> Result<()> {
     // collect results
     info!("- Collecting results ...");
     let outputs = self::io::ResultsOutputs {
+        protocol: protocol_name.clone(),
         read: self::io::ResultsOutputsMetric {
             elapsed_time_s: duration_read.as_secs_f64(),
             iops: num_iteration as f64 / duration_read.as_secs_f64(),
@@ -158,9 +161,8 @@ async fn main() -> Result<()> {
 
     // save results to a file
     if let Some(mut save_dir) = args.inputs.save_dir.clone() {
-        let protocol = protocol.to_string().await?;
         let timestamp = timestamp.to_rfc3339();
-        let filename = format!("benchmark-ipsis-{protocol}-{timestamp}.json");
+        let filename = format!("benchmark-ipsis-{protocol_name}-{timestamp}.json");
         let filepath = {
             save_dir.push(filename);
             save_dir

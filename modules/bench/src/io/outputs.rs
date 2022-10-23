@@ -22,6 +22,9 @@ pub struct ArgsIpiisPublic {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ResultsOutputs {
+    /// Protocol of queried benchmarking stream
+    pub protocol: String,
+
     /// Read performance
     pub read: ResultsOutputsMetric,
 
