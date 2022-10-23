@@ -21,7 +21,7 @@ impl ProtocolImpl {
 #[async_trait]
 impl super::Protocol for ProtocolImpl {
     async fn to_string(&self) -> Result<String> {
-        Ok("ipfs".into())
+        Ok("s3".into())
     }
 
     async fn read(&self, ctx: super::BenchmarkCtx) -> Result<()> {
