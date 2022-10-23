@@ -8,6 +8,7 @@ members = [
   "common",
   "modules/bench",
   "modules/gdown",
+  "modules/ipfs/gateway",
   "modules/local",
   "modules/web",
   "pallet",
