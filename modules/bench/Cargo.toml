@@ -31,5 +31,6 @@ ipsis-common = { path = "../../common" }
 byte-unit = { version = "4.0", features = ["serde"] }
 clap = { version = "3.1", features = ["derive", "env", "unicode", "wrap_help"] }
 rand = "0.8"
+rayon = "1.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

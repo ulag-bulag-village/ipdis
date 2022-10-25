@@ -13,6 +13,7 @@ use ipis::{
     tokio,
 };
 use rand::{distributions::Uniform, Rng};
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -56,6 +57,7 @@ async fn main() -> Result<()> {
     // construct dataset
     info!("- Generating Dataset ...");
     let dataset: Arc<[_]> = (0..num_iteration)
+        .into_par_iter()
         .map(|iter| (iter..iter + size_bytes))
         .map(|range| {
             (
@@ -68,7 +70,8 @@ async fn main() -> Result<()> {
                 range,
             )
         })
-        .collect();
+        .collect::<Vec<_>>()
+        .into();
 
     // begin benchmaring - Writing
     let duration_write = {
