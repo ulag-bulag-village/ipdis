@@ -2,6 +2,7 @@ use std::{net::SocketAddr, path::PathBuf};
 
 use byte_unit::Byte;
 use clap::{Parser, ValueEnum};
+use ipiis_modules_bench_simulation::ipnet::IpNet;
 use ipis::core::account::AccountRef;
 use serde::{Deserialize, Serialize};
 
@@ -70,7 +71,11 @@ pub enum ArgsProtocol {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Parser)]
 pub struct ArgsSimulation {
-    /// Manual delay in milliseconds
-    #[clap(long, env = "SIMULATION_DELAY_MS")]
-    pub delay_ms: Option<u64>,
+    /// Manual network delay in milliseconds
+    #[clap(long, env = "SIMULATION_NETWORK_DELAY_MS")]
+    pub network_delay_ms: Option<u64>,
+
+    /// Manual network delay subnet
+    #[clap(long, env = "SIMULATION_NETWORK_DELAY_SUBNET")]
+    pub network_delay_subnet: Option<IpNet>,
 }

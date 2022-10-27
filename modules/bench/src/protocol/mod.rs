@@ -1,4 +1,4 @@
-use std::{ops::Range, sync::Arc, time::Duration};
+use std::{ops::Range, sync::Arc};
 
 use ipis::{
     async_trait::async_trait,
@@ -59,11 +59,6 @@ where
         .skip(ctx.offset as usize)
         .step_by(ctx.num_threads)
     {
-        // compose simulation environment
-        if let Some(delay) = ctx.simulation.delay_ms.map(Duration::from_millis) {
-            tokio::time::sleep(delay).await;
-        }
-
         let mut recv = client.get_raw(path).await?;
 
         let len = recv.read_u64().await?;
@@ -84,11 +79,6 @@ where
         .skip(ctx.offset as usize)
         .step_by(ctx.num_threads)
     {
-        // compose simulation environment
-        if let Some(delay) = ctx.simulation.delay_ms.map(Duration::from_millis) {
-            tokio::time::sleep(delay).await;
-        }
-
         let data = unsafe {
             ::core::slice::from_raw_parts(ctx.data.as_ptr().add(range.start), ctx.size_bytes)
         };
@@ -107,11 +97,6 @@ where
         .skip(ctx.offset as usize)
         .step_by(ctx.num_threads)
     {
-        // compose simulation environment
-        if let Some(delay) = ctx.simulation.delay_ms.map(Duration::from_millis) {
-            tokio::time::sleep(delay).await;
-        }
-
         client.delete(path).await?;
     }
     Ok(())
