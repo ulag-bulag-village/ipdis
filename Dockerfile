@@ -17,7 +17,7 @@ WORKDIR /usr/local/bin
 CMD [ "runtime" ]
 
 # Install dependencies
-RUN apk add --no-cache libgcc
+RUN apk add --no-cache iproute2-tc libgcc
 
 # Be ready for building
 FROM docker.io/rust:1-alpine${ALPINE_VERSION} as builder
