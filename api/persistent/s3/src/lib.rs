@@ -261,4 +261,4 @@ fn validate_http_status_code(status_code: u16) -> Result<()> {
     }
 }
 
-const CHUNK_SIZE: usize = 524_288;
+const CHUNK_SIZE: usize = 4_096;
