@@ -187,7 +187,7 @@ where
         // external call
         let status_code = self
             .bucket
-            .put_object_stream(&mut rx, &path_canonical)
+            .put_object_stream_parallel(&mut rx, &path_canonical)
             .await?;
 
         // validate response
