@@ -70,7 +70,7 @@ where
 impl<IpiisClient> IpsisClientInner<IpiisClient> {
     pub fn with_ipiis_client(ipiis: IpiisClient) -> Result<Self> {
         Ok(Self {
-            ipiis,
+            ipiis: ipiis,
             dir: Self::new_dir()?,
         })
     }
@@ -90,6 +90,7 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
 impl<IpiisClient> Ipsis for IpsisClientInner<IpiisClient>
 where
     IpiisClient: Ipiis + Send + Sync,
+    IpiisClient::Address: ::std::fmt::Display,
 {
     type Reader = tokio::io::DuplexStream;
 
@@ -106,13 +107,16 @@ where
         let (mut tx, rx) = tokio::io::duplex(CHUNK_SIZE.min(path.len.try_into()?));
 
         // external call
-        tokio::spawn({
+        if self.contains(&path).await? {
             let mut file = tokio::fs::File::open(path_canonical).await?;
-            async move {
+            tokio::spawn(async move {
                 tx.write_u64(path.len).await?;
                 tokio::io::copy(&mut file, &mut tx).await
-            }
-        });
+            });
+        } else {
+            let mut rx = self.ipiis.get_raw(&path).await?;
+            tokio::spawn(async move { tokio::io::copy(&mut rx, &mut tx).await });
+        }
 
         // pack data
         Ok(rx)
@@ -209,4 +213,4 @@ impl<IpiisClient> IpsisClientInner<IpiisClient> {
     }
 }
 
-const CHUNK_SIZE: usize = 524_288;
+const CHUNK_SIZE: usize = 4_096;

@@ -37,7 +37,8 @@ async fn main() -> Result<()> {
 
     // print the configuration
     info!("- Account: {}", args.ipiis.account.to_string());
-    info!("- Address: {}", &args.ipiis.address);
+    info!("- Address (Read): {}", &args.ipiis.address_read);
+    info!("- Address (Write): {}", &args.ipiis.address_write);
     info!("- Data Size: {}", args.inputs.size);
     info!("- Number of Iteration: {}", args.inputs.iter);
     info!("- Number of Threads: {}", args.inputs.num_threads);
@@ -189,7 +190,8 @@ async fn main() -> Result<()> {
         let results = self::io::Results {
             ipiis: self::io::ArgsIpiisPublic {
                 account: args.ipiis.account.to_string(),
-                address: args.ipiis.address,
+                address_read: args.ipiis.address_read,
+                address_write: args.ipiis.address_write,
             },
             inputs: args.inputs,
             outputs: outputs.clone(),

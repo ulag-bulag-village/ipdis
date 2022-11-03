@@ -15,8 +15,11 @@ pub struct ArgsIpiisPublic {
     /// Public Account of the target server
     pub account: String,
 
-    /// Address of the target server
-    pub address: String,
+    /// Address of the target server for reading
+    pub address_read: String,
+
+    /// Address of the target server for writing
+    pub address_write: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

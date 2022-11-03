@@ -108,9 +108,9 @@ where
         let (mut tx, rx) = tokio::io::duplex(CHUNK_SIZE.min(path.len.try_into()?));
 
         // external call
-        tokio::spawn({
+        if self.contains(&path).await? {
             let ipfs = self.ipfs.clone();
-            async move {
+            tokio::spawn(async move {
                 tx.write_u64(path.len).await?;
 
                 let mut stream = ipfs.get(&path.value.to_string());
@@ -148,8 +148,11 @@ where
                         Err(e) => break Err(Error::from(e)),
                     }
                 }
-            }
-        });
+            });
+        } else {
+            let mut rx = self.ipiis.get_raw(&path).await?;
+            tokio::spawn(async move { tokio::io::copy(&mut rx, &mut tx).await });
+        }
 
         // pack data
         Ok(rx)
@@ -217,5 +220,4 @@ where
         Ok(())
     }
 }
-
-const CHUNK_SIZE: usize = 524_288;
+const CHUNK_SIZE: usize = 4_096;

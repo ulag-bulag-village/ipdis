@@ -23,9 +23,13 @@ pub struct ArgsIpiis {
     #[clap(long, env = "ipiis_client_account_primary")]
     pub account: AccountRef,
 
-    /// Address of the target server
-    #[clap(long, env = "ipiis_client_account_primary_address")]
-    pub address: String,
+    /// Address of the target server for reading
+    #[clap(long, env = "ipiis_client_account_primary_address_read")]
+    pub address_read: String,
+
+    /// Address of the target server for writing
+    #[clap(long, env = "ipiis_client_account_primary_address_write")]
+    pub address_write: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Parser)]

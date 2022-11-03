@@ -129,13 +129,16 @@ where
         let (mut tx, rx) = tokio::io::duplex(CHUNK_SIZE.min(path.len.try_into()?));
 
         // external call
-        tokio::spawn({
+        if self.contains(&path).await? {
             let bucket = self.bucket.clone();
-            async move {
+            tokio::spawn(async move {
                 tx.write_u64(path.len).await?;
                 bucket.get_object_stream(path_canonical, &mut tx).await
-            }
-        });
+            });
+        } else {
+            let mut rx = self.ipiis.get_raw(&path).await?;
+            tokio::spawn(async move { tokio::io::copy(&mut rx, &mut tx).await });
+        }
 
         // pack data
         Ok(rx)
