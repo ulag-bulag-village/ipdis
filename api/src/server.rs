@@ -19,14 +19,15 @@ use ipis::{
 };
 use ipsis_common::Ipsis;
 
-use crate::client::IpsisClientInner;
+type IpsisClientInner =
+    ::ipsis_api_common::client::IpsisClientInner<IpiisServer, super::IpsisPersistentStorageImpl>;
 
 pub struct IpsisServer {
-    client: Arc<IpsisClientInner<IpiisServer>>,
+    client: Arc<IpsisClientInner>,
 }
 
 impl ::core::ops::Deref for IpsisServer {
-    type Target = IpsisClientInner<IpiisServer>;
+    type Target = IpsisClientInner;
 
     fn deref(&self) -> &Self::Target {
         &self.client
@@ -35,12 +36,12 @@ impl ::core::ops::Deref for IpsisServer {
 
 #[async_trait]
 impl<'a> Infer<'a> for IpsisServer {
-    type GenesisArgs = <IpiisServer as Infer<'a>>::GenesisArgs;
+    type GenesisArgs = <IpsisClientInner as Infer<'a>>::GenesisArgs;
     type GenesisResult = Self;
 
     async fn try_infer() -> Result<Self> {
         Ok(Self {
-            client: IpsisClientInner::<IpiisServer>::try_infer().await?.into(),
+            client: IpsisClientInner::try_infer().await?.into(),
         })
     }
 
@@ -48,13 +49,13 @@ impl<'a> Infer<'a> for IpsisServer {
         args: <Self as Infer<'a>>::GenesisArgs,
     ) -> Result<<Self as Infer<'a>>::GenesisResult> {
         Ok(Self {
-            client: IpsisClientInner::<IpiisServer>::genesis(args).await?.into(),
+            client: IpsisClientInner::genesis(args).await?.into(),
         })
     }
 }
 
 handle_external_call!(
-    server: IpsisServer => IpsisClientInner<IpiisServer>,
+    server: IpsisServer => IpsisClientInner,
     name: run,
     request: ::ipsis_common::io => {
         Protocol => handle_protocol,
@@ -69,7 +70,7 @@ handle_external_call!(
 
 impl IpsisServer {
     async fn handle_protocol(
-        client: &IpsisClientInner<IpiisServer>,
+        client: &IpsisClientInner,
         req: ::ipsis_common::io::request::Protocol<'static>,
     ) -> Result<::ipsis_common::io::response::Protocol<'static>> {
         // unpack sign
@@ -91,7 +92,7 @@ impl IpsisServer {
     }
 
     async fn handle_get(
-        client: &IpsisClientInner<IpiisServer>,
+        client: &IpsisClientInner,
         req: ::ipsis_common::io::request::Get<'static>,
     ) -> Result<::ipsis_common::io::response::Get<'static>> {
         // unpack sign
@@ -125,11 +126,11 @@ impl IpsisServer {
     }
 
     async fn handle_put<R>(
-        client: &IpsisClientInner<IpiisServer>,
+        client: &IpsisClientInner,
         mut recv: R,
     ) -> Result<::ipsis_common::io::response::Put<'static>>
     where
-        R: AsyncRead + Send + Unpin + 'static,
+        R: AsyncRead + Send + Sync + Unpin + 'static,
     {
         // recv sign
         let sign_as_guarantee: Data<GuaranteeSigned, Path> =
@@ -159,7 +160,7 @@ impl IpsisServer {
     }
 
     async fn handle_contains(
-        client: &IpsisClientInner<IpiisServer>,
+        client: &IpsisClientInner,
         req: ::ipsis_common::io::request::Contains<'static>,
     ) -> Result<::ipsis_common::io::response::Contains<'static>> {
         // unpack sign
@@ -184,7 +185,7 @@ impl IpsisServer {
     }
 
     async fn handle_delete(
-        client: &IpsisClientInner<IpiisServer>,
+        client: &IpsisClientInner,
         req: ::ipsis_common::io::request::Delete<'static>,
     ) -> Result<::ipsis_common::io::response::Delete<'static>> {
         // unpack sign

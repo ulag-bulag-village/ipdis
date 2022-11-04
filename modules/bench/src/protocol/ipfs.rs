@@ -1,36 +1,48 @@
 use std::env;
 
+use ipiis_api::client::IpiisClient;
 use ipis::{
     async_trait::async_trait,
     core::anyhow::{Ok, Result},
     env::Infer,
 };
-use ipsis_api_persistent_ipfs::IpsisClient;
+use ipsis_api_common::IpsisClientInner;
+use ipsis_api_persistent_ipfs::IpsisPersistentStorageImpl;
 
 pub struct ProtocolImpl {
-    client_read: IpsisClient,
-    client_write: IpsisClient,
+    client_read: IpsisClientInner<IpiisClient, IpsisPersistentStorageImpl>,
+    client_write: IpsisClientInner<IpiisClient, IpsisPersistentStorageImpl>,
 }
 
 impl ProtocolImpl {
     pub async fn try_new() -> Result<Self> {
         // init client - write
-        if let Some(host) = env::var_os("ipsis_client_ipfs_host_write") {
-            env::set_var("ipsis_client_ipfs_host", host);
+        let client_write = {
+            env::set_var("ipiis_router_db", "/tmp/ipiis-rarp-db-writer");
+
+            if let Some(host) = env::var_os("ipsis_client_ipfs_host_write") {
+                env::set_var("ipsis_client_ipfs_host", host);
+            };
+            if let Some(port) = env::var_os("ipsis_client_ipfs_port_write") {
+                env::set_var("ipsis_client_ipfs_port", port);
+            };
+
+            IpsisClientInner::try_infer().await?
         };
-        if let Some(port) = env::var_os("ipsis_client_ipfs_port_write") {
-            env::set_var("ipsis_client_ipfs_port", port);
-        };
-        let client_write = IpsisClient::try_infer().await?;
 
         // init client - read
-        if let Some(host) = env::var_os("ipsis_client_ipfs_host_read") {
-            env::set_var("ipsis_client_ipfs_host", host);
+        let client_read = {
+            env::set_var("ipiis_router_db", "/tmp/ipiis-rarp-db-reader");
+
+            if let Some(host) = env::var_os("ipsis_client_ipfs_host_read") {
+                env::set_var("ipsis_client_ipfs_host", host);
+            };
+            if let Some(port) = env::var_os("ipsis_client_ipfs_port_read") {
+                env::set_var("ipsis_client_ipfs_port", port);
+            };
+
+            IpsisClientInner::try_infer().await?
         };
-        if let Some(port) = env::var_os("ipsis_client_ipfs_port_read") {
-            env::set_var("ipsis_client_ipfs_port", port);
-        };
-        let client_read = IpsisClient::try_infer().await?;
 
         Ok(Self {
             client_read,

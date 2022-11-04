@@ -1,18 +1,20 @@
+use ipiis_api::client::IpiisClient;
 use ipis::{
     async_trait::async_trait,
     core::anyhow::{Ok, Result},
     env::Infer,
 };
-use ipsis_api_persistent_local::IpsisClient;
+use ipsis_api_common::IpsisClientInner;
+use ipsis_api_persistent_local::IpsisPersistentStorageImpl;
 
 pub struct ProtocolImpl {
-    client: IpsisClient,
+    client: IpsisClientInner<IpiisClient, IpsisPersistentStorageImpl>,
 }
 
 impl ProtocolImpl {
     pub async fn try_new() -> Result<Self> {
         // init client
-        let client = IpsisClient::try_infer().await?;
+        let client = IpsisClientInner::try_infer().await?;
 
         Ok(Self { client })
     }

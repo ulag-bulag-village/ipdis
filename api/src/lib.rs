@@ -1,10 +1,17 @@
 pub extern crate ipsis_common as common;
 
+pub mod client {
+    pub use ::ipsis_api_common::{client::IpsisClientInner, config::IpsisClientConfig};
+
+    pub type IpsisClient =
+        IpsisClientInner<::ipiis_api::client::IpiisClient, super::IpsisPersistentStorageImpl>;
+}
+
 pub mod server;
 
 #[cfg(feature = "ipfs")]
-pub use ipsis_api_persistent_ipfs as client;
+use ipsis_api_persistent_ipfs::IpsisPersistentStorageImpl;
 #[cfg(feature = "local")]
-pub use ipsis_api_persistent_local as client;
+use ipsis_api_persistent_local::IpsisPersistentStorageImpl;
 #[cfg(feature = "s3")]
-pub use ipsis_api_persistent_s3 as client;
+use ipsis_api_persistent_s3::IpsisPersistentStorageImpl;

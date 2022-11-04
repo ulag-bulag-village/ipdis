@@ -90,6 +90,15 @@ async fn get_ipfs(
         .body(rx)
 }
 
+#[get("/protocol")]
+async fn get_protocol(client: web::Data<IpsisClient>) -> impl Responder {
+    match client.protocol().await {
+        Ok(protocol) => HttpResponse::Ok().body(protocol),
+        Err(_) => HttpResponse::InternalServerError()
+            .body("Failed to infer the protocol IPSIS internal storage"),
+    }
+}
+
 #[actix_web::main]
 async fn main() {
     async fn try_main() -> ::ipis::core::anyhow::Result<()> {
@@ -105,6 +114,7 @@ async fn main() {
             App::new()
                 .app_data(web::Data::clone(&client))
                 .service(get_ipfs)
+                .service(get_protocol)
         })
         .bind(addr)
         .unwrap_or_else(|e| panic!("failed to bind to {addr}: {e}"))

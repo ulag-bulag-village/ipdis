@@ -71,7 +71,7 @@ pub trait Ipsis {
 
     async fn put_raw<R>(&self, path: &Path, data: R) -> Result<()>
     where
-        R: AsyncRead + Send + Unpin + 'static;
+        R: AsyncRead + Send + Sync + Unpin + 'static;
 
     async fn contains(&self, path: &Path) -> Result<bool>;
 
@@ -129,7 +129,7 @@ where
 
     async fn put_raw<R>(&self, path: &Path, data: R) -> Result<()>
     where
-        R: AsyncRead + Send + Unpin + 'static,
+        R: AsyncRead + Send + Sync + Unpin + 'static,
     {
         // next target
         let target = self.get_account_primary(KIND.as_ref()).await?;

@@ -1,184 +1,118 @@
-use std::sync::Arc;
-
 use async_compat::{Compat, CompatExt};
 use http::uri::Scheme;
 use ipfs_api::{IpfsApi, IpfsClient, TryFromUri};
-use ipiis_api::common::Ipiis;
 use ipis::{
     async_trait::async_trait,
-    core::anyhow::{bail, Error, Result},
+    core::{account::AccountRef, anyhow::Result},
     env::{infer, Infer},
     futures::TryStreamExt,
     path::Path,
     tokio::{
         self,
-        io::{AsyncRead, AsyncReadExt, AsyncWriteExt, DuplexStream},
+        io::{AsyncRead, AsyncReadExt, AsyncWrite},
     },
 };
-use ipsis_common::Ipsis;
+use ipsis_api_persistent_common::IpsisPersistentStorage;
 
-pub type IpsisClient = IpsisClientInner<::ipiis_api::client::IpiisClient>;
-
-pub struct IpsisClientInner<IpiisClient> {
-    pub ipiis: IpiisClient,
-    ipfs: Arc<IpfsClient>,
-}
-
-impl<IpiisClient> AsRef<::ipiis_api::client::IpiisClient> for IpsisClientInner<IpiisClient>
-where
-    IpiisClient: AsRef<::ipiis_api::client::IpiisClient>,
-{
-    fn as_ref(&self) -> &::ipiis_api::client::IpiisClient {
-        self.ipiis.as_ref()
-    }
-}
-
-impl<IpiisClient> AsRef<::ipiis_api::server::IpiisServer> for IpsisClientInner<IpiisClient>
-where
-    IpiisClient: AsRef<::ipiis_api::server::IpiisServer>,
-{
-    fn as_ref(&self) -> &::ipiis_api::server::IpiisServer {
-        self.ipiis.as_ref()
-    }
+pub struct IpsisPersistentStorageImpl {
+    ipfs: IpfsClient,
 }
 
 #[async_trait]
-impl<'a, IpiisClient> Infer<'a> for IpsisClientInner<IpiisClient>
+impl<'a> Infer<'a> for IpsisPersistentStorageImpl
 where
     Self: Send,
-    IpiisClient: Infer<'a, GenesisResult = IpiisClient>,
-    <IpiisClient as Infer<'a>>::GenesisArgs: Sized,
 {
-    type GenesisArgs = <IpiisClient as Infer<'a>>::GenesisArgs;
+    type GenesisArgs = ();
     type GenesisResult = Self;
 
     async fn try_infer() -> Result<Self> {
-        IpiisClient::try_infer()
-            .await
-            .and_then(Self::with_ipiis_client)
+        Self::try_new()
     }
 
     async fn genesis(
-        args: <Self as Infer<'a>>::GenesisArgs,
+        (): <Self as Infer<'a>>::GenesisArgs,
     ) -> Result<<Self as Infer<'a>>::GenesisResult> {
-        IpiisClient::genesis(args)
-            .await
-            .and_then(Self::with_ipiis_client)
+        Self::try_new()
     }
 }
 
-impl<IpiisClient> IpsisClientInner<IpiisClient> {
-    pub fn with_ipiis_client(ipiis: IpiisClient) -> Result<Self> {
-        Ok(Self {
-            ipiis,
-            ipfs: Self::new_ipfs_entrypoint()?,
-        })
-    }
-
-    pub fn new_ipfs_entrypoint() -> Result<Arc<IpfsClient>> {
+impl IpsisPersistentStorageImpl {
+    pub fn try_new() -> Result<Self> {
         let host: String = infer("ipsis_client_ipfs_host").unwrap_or_else(|_| "localhost".into());
         let port = infer("ipsis_client_ipfs_port").unwrap_or(5001);
 
-        IpfsClient::from_host_and_port(Scheme::HTTP, &host, port)
-            .map(Into::into)
-            .map_err(Into::into)
+        Ok(Self {
+            ipfs: IpfsClient::from_host_and_port(Scheme::HTTP, &host, port)?,
+        })
     }
 
-    pub fn ipfs(&self) -> &Arc<IpfsClient> {
+    pub fn ipfs(&self) -> &IpfsClient {
         &self.ipfs
     }
 }
 
 #[async_trait]
-impl<IpiisClient> Ipsis for IpsisClientInner<IpiisClient>
-where
-    IpiisClient: Ipiis + Send + Sync,
-{
-    type Reader = tokio::io::DuplexStream;
+impl IpsisPersistentStorage for IpsisPersistentStorageImpl {
+    const PROTOCOL: &'static str = "ipfs";
+    const USE_HASH_AS_NATIVE: bool = true;
 
-    async fn protocol(&self) -> Result<String> {
-        Ok("ipfs".into())
-    }
+    async fn get_raw<W>(&self, _account: &AccountRef, path: &Path, writer: &mut W) -> Result<()>
+    where
+        W: AsyncWrite + Send + Unpin + 'static,
+    {
+        // TODO: verify account
 
-    async fn get_raw(&self, path: &Path) -> Result<<Self as Ipsis>::Reader> {
         // get canonical path
         let path = *path;
 
-        // create a channel
-        let (mut tx, rx) = tokio::io::duplex(CHUNK_SIZE.min(path.len.try_into()?));
-
         // external call
-        if self.contains(&path).await? {
-            let ipfs = self.ipfs.clone();
-            tokio::spawn(async move {
-                tx.write_u64(path.len).await?;
+        let mut stream = self
+            .ipfs
+            .get(&path.value.to_string())
+            .map_err(|e| ::std::io::Error::new(::std::io::ErrorKind::Other, e))
+            .into_async_read();
+        let mut stream = stream.compat_mut();
 
-                let mut stream = ipfs.get(&path.value.to_string());
-                let mut has_header = true;
-                let mut len = 0;
-                loop {
-                    match stream.try_next().await {
-                        Ok(Some(bytes)) => {
-                            let mut bytes = if has_header {
-                                has_header = false;
-
-                                const HEADER_SIZE: usize = 512;
-                                &bytes[HEADER_SIZE..]
-                            } else {
-                                &bytes
-                            };
-
-                            let num_bytes = bytes.len() as u64;
-                            len += num_bytes;
-
-                            if len > path.len {
-                                let nullbytes = len - path.len;
-                                bytes = &bytes[..(num_bytes - nullbytes) as usize];
-                                len -= nullbytes;
-                            }
-                            tx.write_all_buf(&mut bytes).await?;
-
-                            if len == path.len {
-                                break Ok(());
-                            }
-                        }
-                        Ok(None) => {
-                            break Ok(());
-                        }
-                        Err(e) => break Err(Error::from(e)),
-                    }
-                }
-            });
-        } else {
-            let mut rx = self.ipiis.get_raw(&path).await?;
-            tokio::spawn(async move { tokio::io::copy(&mut rx, &mut tx).await });
+        // drop header packets
+        {
+            let mut buf = vec![0u8; 512];
+            stream.read_exact(&mut buf).await?;
         }
 
-        // pack data
-        Ok(rx)
+        // execute data transfer
+        tokio::io::copy(&mut stream, writer)
+            .await
+            .map(|_| ())
+            .map_err(Into::into)
     }
 
-    async fn put_raw<R>(&self, path: &Path, data: R) -> Result<()>
+    async fn put_raw<R>(
+        &self,
+        _account: &AccountRef,
+        path: &Path,
+        reader: &mut R,
+    ) -> Result<Result<(), Path>>
     where
-        R: AsyncRead + Send + Unpin + 'static,
+        R: AsyncRead + Send + Sync + Unpin + 'static,
     {
+        // TODO: verify account
+
         // get canonical path
         let path = *path;
 
-        // create a channel
-        let (mut tx, mut rx) = tokio::io::duplex(CHUNK_SIZE);
+        // SAFETY: the reader should be **comsumed** in the external API call
+        let mut reader: Compat<&mut R> = unsafe { ::core::mem::transmute(reader.compat_mut()) };
+        let reader: &mut Compat<&mut R> = unsafe { ::core::mem::transmute(&mut reader) };
 
-        // impl Sync for R
-        tokio::spawn(async move { tokio::io::copy(&mut data.take(path.len), &mut tx).await });
-
-        // external call
-        let mut rx: Compat<&mut DuplexStream> = unsafe { ::core::mem::transmute(rx.compat_mut()) };
-        let rx: &mut Compat<&mut DuplexStream> = unsafe { ::core::mem::transmute(&mut rx) };
+        // IPFS PUT options
         let options = ipfs_api::request::Add::builder()
             .cid_version(1)
             .pin(true)
             .build();
-        let response = self.ipfs.add_async_with_options(rx, options).await?;
+
+        // external call
+        let response = self.ipfs.add_async_with_options(reader, options).await?;
 
         // poll hash
         let path_from_data = Path {
@@ -188,17 +122,15 @@ where
 
         // validate hash
         if path == path_from_data {
-            Ok(())
+            Ok(Ok(()))
         } else {
-            // revert the request
-            self.delete(&path_from_data).await?;
-
-            // raise an error
-            bail!("failed to validate the path")
+            Ok(Err(path_from_data))
         }
     }
 
-    async fn contains(&self, path: &Path) -> Result<bool> {
+    async fn contains(&self, _account: &AccountRef, path: &Path) -> Result<bool> {
+        // TODO: verify account
+
         // get canonical path
         let path = *path;
 
@@ -209,7 +141,9 @@ where
         Ok(result.is_ok())
     }
 
-    async fn delete(&self, path: &Path) -> Result<()> {
+    async fn delete(&self, _account: &AccountRef, path: &Path) -> Result<()> {
+        // TODO: verify account
+
         // get canonical path
         let path = *path;
 
@@ -220,4 +154,3 @@ where
         Ok(())
     }
 }
-const CHUNK_SIZE: usize = 4_096;

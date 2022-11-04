@@ -2,6 +2,8 @@
 resolver = "2"
 members = [
   "api",
+  "api/common",
+  "api/persistent/common",
   "api/persistent/ipfs",
   "api/persistent/local",
   "api/persistent/s3",

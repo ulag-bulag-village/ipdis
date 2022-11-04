@@ -51,9 +51,9 @@ pub struct ArgsInputs {
     #[clap(long, env = "NUM_THREADS", default_value_t = 1)]
     pub num_threads: u32,
 
-    /// Whether to cleanup all testing data
-    #[clap(long, env = "CLEAN", default_value_t = true)]
-    pub clean: bool,
+    /// Whether not to cleanup all testing data
+    #[clap(long, env = "NO_CLEAN")]
+    pub no_clean: bool,
 
     /// Directory to save the results (filename is hashed by protocol and starting time)
     #[clap(long, env = "SAVE_DIR")]
