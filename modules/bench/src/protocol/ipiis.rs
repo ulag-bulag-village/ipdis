@@ -19,7 +19,7 @@ impl ProtocolImpl {
     pub async fn try_new(ipiis: &ArgsIpiis) -> Result<Self> {
         // init client - write
         let client_write = {
-            env::set_var("ipiis_router_db", "/tmp/ipiis-rarp-db-writer");
+            env::set_var("ipiis_router_db", "/tmp/ipiis-router-db-writer");
             let client = IpiisClient::try_infer().await?;
 
             // register the server account as primary
@@ -35,7 +35,7 @@ impl ProtocolImpl {
 
         // init client - read
         let client_read = {
-            env::set_var("ipiis_router_db", "/tmp/ipiis-rarp-db-reader");
+            env::set_var("ipiis_router_db", "/tmp/ipiis-router-db-reader");
             let client = IpiisClient::try_infer().await?;
 
             // register the server account as primary

@@ -18,7 +18,7 @@ impl ProtocolImpl {
     pub async fn try_new() -> Result<Self> {
         // init client - write
         let client_write = {
-            env::set_var("ipiis_router_db", "/tmp/ipiis-rarp-db-writer");
+            env::set_var("ipiis_router_db", "/tmp/ipiis-router-db-writer");
 
             if let Some(host) = env::var_os("ipsis_client_ipfs_host_write") {
                 env::set_var("ipsis_client_ipfs_host", host);
@@ -32,7 +32,7 @@ impl ProtocolImpl {
 
         // init client - read
         let client_read = {
-            env::set_var("ipiis_router_db", "/tmp/ipiis-rarp-db-reader");
+            env::set_var("ipiis_router_db", "/tmp/ipiis-router-db-reader");
 
             if let Some(host) = env::var_os("ipsis_client_ipfs_host_read") {
                 env::set_var("ipsis_client_ipfs_host", host);
