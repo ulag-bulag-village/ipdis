@@ -56,13 +56,8 @@ where
     IpiisClient: Infer<'a, GenesisResult = IpiisClient> + Send,
     <IpiisClient as Infer<'a>>::GenesisArgs: Sized,
     PersistentStorage: Infer<'a, GenesisResult = PersistentStorage>,
-    <PersistentStorage as Infer<'a>>::GenesisArgs: Sized,
 {
-    type GenesisArgs = (
-        <IpiisClient as Infer<'a>>::GenesisArgs,
-        IpsisClientConfig,
-        <PersistentStorage as Infer<'a>>::GenesisArgs,
-    );
+    type GenesisArgs = <IpiisClient as Infer<'a>>::GenesisArgs;
     type GenesisResult = Self;
 
     async fn try_infer() -> Result<Self> {
@@ -74,14 +69,12 @@ where
     }
 
     async fn genesis(
-        (ipiis_args, config, persistent_storage_args): <Self as Infer<'a>>::GenesisArgs,
+        args: <Self as Infer<'a>>::GenesisArgs,
     ) -> Result<<Self as Infer<'a>>::GenesisResult> {
         Ok(Self {
-            ipiis: IpiisClient::genesis(ipiis_args).await?,
-            config,
-            persistent_storage: PersistentStorage::genesis(persistent_storage_args)
-                .await?
-                .into(),
+            ipiis: IpiisClient::genesis(args).await?,
+            config: Default::default(),
+            persistent_storage: PersistentStorage::try_infer().await?.into(),
         })
     }
 }

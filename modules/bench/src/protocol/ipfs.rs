@@ -6,7 +6,7 @@ use ipis::{
     core::anyhow::{Ok, Result},
     env::Infer,
 };
-use ipsis_api_common::IpsisClientInner;
+use ipsis_api_common::client::IpsisClientInner;
 use ipsis_api_persistent_ipfs::IpsisPersistentStorageImpl;
 
 pub struct ProtocolImpl {

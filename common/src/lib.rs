@@ -25,7 +25,7 @@ use rkyv::{
 
 #[async_trait]
 pub trait Ipsis {
-    type Reader: AsyncRead + Send + Unpin + 'static;
+    type Reader: AsyncRead + Send + Sync + Unpin + 'static;
 
     async fn protocol(&self) -> Result<String>;
 
